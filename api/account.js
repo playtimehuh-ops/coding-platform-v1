@@ -25,7 +25,7 @@ export default async function handler(request) {
       authenticated: true,
       user: {
         id: session.sub,
-        login: session.login,
+        email: session.email,
         name: session.name,
         avatar_url: session.avatar_url
       },
