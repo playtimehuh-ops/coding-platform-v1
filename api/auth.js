@@ -172,6 +172,47 @@ export default async function handler(request) {
         });
       }
 
+      if (action === "complete") {
+        const accessToken = String(body.access_token || "");
+        const refreshToken = String(body.refresh_token || "");
+        if (!accessToken) return json({ error: "Missing authentication token." }, 400);
+
+        const data = await supabase("/auth/v1/user", {
+          method: "GET",
+          accessToken
+        });
+        await upsertUser(data);
+
+        return json({
+          ok: true,
+          user: publicSession(data)
+        }, 200, {
+          "Set-Cookie": setSession(data, accessToken, refreshToken)
+        });
+      }
+
+      if (action === "recover") {
+        const accessToken = String(body.access_token || "");
+        const refreshToken = String(body.refresh_token || "");
+        const password = String(body.newPassword || "");
+        if (!accessToken) return json({ error: "Recovery session is missing." }, 400);
+        if (!validatePassword(password)) return json({ error: "New password must be at least 8 characters." }, 400);
+
+        const data = await supabase("/auth/v1/user", {
+          method: "PUT",
+          accessToken,
+          body: JSON.stringify({ password })
+        });
+        await upsertUser(data);
+
+        return json({
+          ok: true,
+          user: publicSession(data)
+        }, 200, {
+          "Set-Cookie": setSession(data, accessToken, refreshToken)
+        });
+      }
+
       if (action === "update") {
         const session = readSession(request);
         if (!session?.accessToken) return json({ error: "Sign in first." }, 401);
