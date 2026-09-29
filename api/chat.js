@@ -1,5 +1,7 @@
 import { readSession } from "../lib/auth.js";
 import { collectRepository } from "./github.js";
+import { decrypt, readSession } from "../lib/auth.js";
+import { getGithubConnection } from "../lib/db.js";
 import { dbConfigured, getSubscription, getUsage, addUsage } from "../lib/db.js";
 import { getPlan, PLAN_LIMITS } from "../lib/plan.js";
 
@@ -120,7 +122,11 @@ export default async function handler(request) {
 
   try {
     const session = readSession(request);
-    if (!session?.accessToken) return json({ error: "Sign in with GitHub first." }, 401);
+    if (!session) return json({ error: "Create a Codebase account first." }, 401);
+
+    const connection = await getGithubConnection(session.sub);
+    const githubToken = connection ? decrypt(connection.token_encrypted) : null;
+    if (!githubToken) return json({ error: "Link GitHub to your Codebase account first.", code: "GITHUB_NOT_LINKED" }, 403);
 
     const body = await request.json();
     const prompt = String(body.prompt || "").trim();
@@ -146,7 +152,7 @@ export default async function handler(request) {
     }
 
     const maxFiles = PLAN_LIMITS[plan].contextFiles;
-    const context = await collectRepository(repo, session.accessToken, maxFiles);
+    const context = await collectRepository(repo, githubToken, maxFiles);
     const result = await runOpenAI(buildInput(prompt, context));
     const nextUsed = dbConfigured() ? await addUsage(session.sub) : used + 1;
 
