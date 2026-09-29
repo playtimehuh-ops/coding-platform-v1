@@ -3,275 +3,336 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="A focused AI coding workspace for GitHub projects.">
+<meta name="description" content="Codebase — a focused AI coding workspace for GitHub projects.">
+<meta name="theme-color" content="#0b0d10">
 <title>Codebase — AI coding workspace</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0b0d10;--panel:#101317;--panel2:#14181d;--panel3:#181d23;--line:#252b33;
-  --text:#f2f4f7;--muted:#8b949e;--dim:#68717c;--accent:#c8ff4a;--accent2:#9fd72e;
-  --danger:#ff6b6b;--warning:#ffc857;--shadow:0 16px 48px rgba(0,0,0,.32);
+  --bg:#0a0c0f;--panel:#0f1216;--panel2:#13171c;--panel3:#171c22;--line:#252b32;
+  --line2:#303841;--text:#f2f4f7;--muted:#929ba5;--dim:#68727d;--accent:#c8ff4a;
+  --accent-ink:#10130b;--danger:#ff7a7a;--warn:#f3c969;--ok:#a7d878;
   --sans:"DM Sans",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;
+  --shadow:0 24px 80px rgba(0,0,0,.45);
 }
 *{box-sizing:border-box}html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
-button,input,textarea{font:inherit;color:inherit}
-button{border:0;background:none;cursor:pointer}
+button,input,textarea,select{font:inherit;color:inherit}button{border:0;background:none;cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.48}
 .app{height:100%;display:grid;grid-template-rows:54px 1fr}
-.topbar{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:0 16px;background:rgba(11,13,16,.94)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.02em}
-.logo{width:25px;height:25px;border:1px solid #3d4650;border-radius:7px;display:grid;place-items:center;background:#12161b;color:var(--accent);font-size:13px;font-family:var(--mono)}
-.brand span{font-size:14px}
-.top-actions{display:flex;align-items:center;gap:7px}
-.icon-btn,.top-btn{height:32px;border:1px solid var(--line);border-radius:7px;padding:0 10px;display:inline-flex;align-items:center;gap:7px;background:#101418;color:#b9c0c8;font-size:12px}
-.icon-btn:hover,.top-btn:hover{background:#171c22;color:#fff;border-color:#333b44}
-.primary{background:var(--accent);border-color:var(--accent);color:#10130b;font-weight:700}
-.primary:hover{background:#d6ff77;color:#10130b}
-.status{display:inline-flex;align-items:center;gap:7px;padding:0 10px;height:30px;border:1px solid #26301f;border-radius:999px;background:#10150d;color:#bddf76;font-size:11px;font-weight:600}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(200,255,74,.08)}
-.workspace{min-height:0;display:grid;grid-template-columns:220px minmax(420px,1fr) minmax(330px,420px);background:var(--bg)}
-.sidebar,.rightbar{min-height:0;background:var(--panel);border-right:1px solid var(--line)}
-.rightbar{border-right:0;border-left:1px solid var(--line)}
-.side-head{height:52px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;color:#aeb6bf;text-transform:uppercase;letter-spacing:.09em}
-.repo{margin:12px;border:1px solid var(--line);background:#12171c;border-radius:9px;padding:11px}
-.repo-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.repo-name{font-size:13px;font-weight:700}.repo-branch{font:10px var(--mono);color:#8e99a4}
-.repo-path{font:11px var(--mono);color:var(--muted);margin-top:6px}
-.tree{padding:5px 7px;overflow:auto;height:calc(100% - 150px)}
-.tree-row{display:flex;align-items:center;gap:7px;height:31px;padding:0 8px;border-radius:6px;color:#aab2bb;font-size:12px}
-.tree-row:hover{background:#161b21;color:#eef2f5}.tree-row.active{background:#1b2229;color:#fff}
-.tree-row.dir{color:#d2d7dc}.chev{font-size:10px;width:10px;color:#6e7781}.file-icon{width:13px;text-align:center;font:10px var(--mono);color:#69737d}
-.nested{padding-left:20px}
-.side-footer{position:absolute;bottom:0;width:220px;border-top:1px solid var(--line);padding:10px;background:var(--panel)}
-.usage{font-size:10px;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:7px}
-.bar{height:4px;background:#20262d;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;width:38%;background:var(--accent)}
-.editor{min-width:0;min-height:0;display:grid;grid-template-rows:48px minmax(0,1fr) 176px}
-.tabbar{display:flex;align-items:end;border-bottom:1px solid var(--line);background:#0d1014;padding:0 12px;overflow:auto}
-.tab{height:48px;padding:0 14px;display:flex;align-items:center;border-right:1px solid transparent;color:#808a95;font-size:12px;white-space:nowrap;position:relative}
-.tab:first-child{color:#fff}.tab:first-child:after{content:"";position:absolute;bottom:0;left:11px;right:11px;height:2px;background:var(--accent)}
-.tab .close{margin-left:8px;color:#515963;font-size:13px}
-.code-wrap{min-height:0;display:grid;grid-template-columns:50px minmax(0,1fr);background:#0b0d10}
-.lines{padding:17px 10px 40px 0;text-align:right;color:#46505b;font:12px/22px var(--mono);user-select:none;overflow:hidden}
-.code{margin:0;padding:17px 22px 40px 0;overflow:auto;font:12px/22px var(--mono);white-space:pre;color:#dce2e8;tab-size:2}
-.c-blue{color:#7cb7ff}.c-green{color:#b9e77d}.c-yellow{color:#ffd479}.c-purple{color:#c7a5ff}.c-red{color:#ff9b9b}.c-muted{color:#5e6974}
-.terminal{background:#0e1115;border-top:1px solid var(--line);min-height:0;display:grid;grid-template-rows:39px minmax(0,1fr)}
-.term-tabs{display:flex;align-items:center;border-bottom:1px solid #1d2228;padding:0 12px;gap:18px}
-.term-tab{height:39px;color:#7f8993;font-size:11px;position:relative}.term-tab.active{color:#fff}.term-tab.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--accent)}
-.term-body{padding:11px 15px;overflow:auto;font:11px/19px var(--mono);color:#8f99a3}.term-line{white-space:pre}.prompt{color:var(--accent)}.ok{color:#abc776}
-.ai-head{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--line)}
-.ai-title{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700}.ai-mark{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:#eaffbb;color:#171d0d;font-size:11px;font-weight:800}
-.model{display:flex;align-items:center;gap:6px;height:29px;padding:0 8px;border:1px solid var(--line);background:#11161b;border-radius:6px;color:#adb5be;font-size:10px}
-.chat{min-height:0;overflow:auto;padding:16px 15px 115px}
-.msg{margin-bottom:18px}.msg-head{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;margin-bottom:7px}.avatar{width:21px;height:21px;border-radius:6px;display:grid;place-items:center;font-size:9px;font-weight:800}.you{background:#242b33;color:#d7dce1}.assistant{background:#eaffbb;color:#151c0c}
-.msg p{margin:0;color:#c3cbd3;font-size:12px;line-height:1.65}.msg p strong{color:#fff}
-.patch{margin-top:10px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#0d1014}
-.patch-head{padding:8px 10px;border-bottom:1px solid var(--line);font:10px var(--mono);color:#89939e;display:flex;justify-content:space-between}
-.patch pre{margin:0;padding:10px;font:10px/17px var(--mono);overflow:auto}.add{color:#a7d878}.del{color:#e67f7f}
-.composer{position:absolute;right:0;bottom:0;width:min(420px,100%);padding:12px;background:linear-gradient(180deg,transparent,#101317 15% 100%);pointer-events:none}
-.composer-inner{pointer-events:auto;border:1px solid #303841;background:#11161b;border-radius:10px;box-shadow:var(--shadow);padding:9px}
-textarea{width:100%;min-height:68px;max-height:140px;resize:none;border:0;outline:none;background:transparent;font-size:12px;line-height:1.5;color:#e7ebef}
-textarea::placeholder{color:#626c76}
-.compose-foot{display:flex;align-items:center;justify-content:space-between;margin-top:7px}.chips{display:flex;gap:5px}.chip{border:1px solid var(--line);border-radius:5px;padding:5px 7px;font-size:9px;color:#7e8994;background:#0e1318}.send{width:29px;height:29px;border-radius:7px;background:var(--accent);color:#10130b;font-weight:800}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.63);display:none;align-items:center;justify-content:center;z-index:10}
-.modal{width:min(520px,calc(100vw - 30px));border:1px solid #303840;background:#11161b;border-radius:13px;box-shadow:0 30px 100px rgba(0,0,0,.5);overflow:hidden}
-.modal-head{padding:17px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-.modal-body{padding:18px}.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.plan{border:1px solid var(--line);background:#0d1115;border-radius:9px;padding:13px}.plan.featured{border-color:#52692b;box-shadow:inset 0 0 0 1px rgba(200,255,74,.08)}.plan h3{margin:0 0 5px;font-size:13px}.price{font-size:20px;font-weight:700}.price small{font-size:10px;color:var(--muted);font-weight:400}.plan p{font-size:10px;color:var(--muted);line-height:1.5;min-height:30px}.plan button{width:100%;height:31px;border:1px solid var(--line);border-radius:6px;font-size:10px;color:#cbd2d9}.plan.featured button{background:var(--accent);border-color:var(--accent);color:#10130b;font-weight:700}
-.toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,20px);background:#171c21;border:1px solid #313940;padding:9px 12px;border-radius:7px;color:#d8dde2;font-size:11px;opacity:0;pointer-events:none;transition:.2s;z-index:20}.toast.show{opacity:1;transform:translate(-50%,0)}
-@media (max-width:1050px){.workspace{grid-template-columns:200px minmax(400px,1fr)}.rightbar{display:none}}
-@media (max-width:720px){body{overflow:auto}.app{height:auto;min-height:100%}.workspace{grid-template-columns:1fr;display:block}.sidebar{display:none}.editor{min-height:calc(100vh - 54px);grid-template-rows:48px minmax(420px,1fr) 176px}.rightbar{display:block;height:620px;border-left:0;border-top:1px solid var(--line)}.composer{position:fixed}.top-actions .status{display:none}.brand span{display:none}}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 16px;border-bottom:1px solid var(--line);background:rgba(10,12,15,.97)}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:26px;height:26px;border:1px solid #3a434d;border-radius:7px;display:grid;place-items:center;background:#11151a;color:var(--accent);font:600 13px var(--mono)}.brand-name{font-size:14px;font-weight:700;letter-spacing:-.02em}
+.top-actions{display:flex;align-items:center;gap:7px}.top-btn,.icon-btn{height:31px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:#0f1419;color:#bcc4cc;font-size:11px}.top-btn:hover,.icon-btn:hover{background:#161c21;color:#fff;border-color:#3a434c}
+.status{height:29px;display:flex;align-items:center;gap:7px;padding:0 9px;border:1px solid #29331f;border-radius:999px;background:#10150d;color:#c1df83;font-size:10px;font-weight:600}.status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(200,255,74,.08)}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}.primary:hover{background:#d9ff79;color:var(--accent-ink)}
+.workspace{min-height:0;display:grid;grid-template-columns:225px minmax(450px,1fr) minmax(355px,430px)}
+.sidebar,.agent{min-width:0;min-height:0;background:var(--panel)}.sidebar{border-right:1px solid var(--line)}.agent{border-left:1px solid var(--line)}
+.section-head{height:49px;display:flex;align-items:center;justify-content:space-between;padding:0 13px;border-bottom:1px solid var(--line);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aeb7c0}
+.repo-select{margin:11px;border:1px solid var(--line);border-radius:8px;background:#12171d;overflow:hidden}
+.repo-select label{display:block;padding:9px 11px 4px;color:var(--dim);font-size:9px}.repo-select select{width:100%;height:32px;padding:0 10px;border:0;outline:0;background:#12171d;font-size:11px;color:#e9edf0}.repo-meta{padding:0 11px 10px;color:#7f8994;font:9px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tree{height:calc(100% - 156px);overflow:auto;padding:5px 7px}.tree-row{height:29px;display:flex;align-items:center;gap:7px;padding:0 8px;border-radius:6px;color:#aab3bc;font-size:11px}.tree-row:hover{background:#151a20;color:#eef1f4}.tree-row.active{background:#1a2027;color:#fff}.tree-indent{padding-left:24px}.tree-icon{width:16px;text-align:center;font:9px var(--mono);color:#69737e}.tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tree-dir{color:#d2d8dd}
+.side-bottom{position:relative;border-top:1px solid var(--line);padding:9px 11px}.usage{display:flex;justify-content:space-between;color:#7f8994;font-size:9px;margin-bottom:6px}.usage-bar{height:4px;border-radius:99px;background:#20262d;overflow:hidden}.usage-bar span{display:block;height:100%;width:18%;background:var(--accent)}
+.editor{min-width:0;min-height:0;display:grid;grid-template-rows:47px minmax(0,1fr) 168px;background:var(--bg)}
+.tabs{display:flex;align-items:end;padding:0 9px;border-bottom:1px solid var(--line);background:#0c0f12;overflow:auto}
+.tab{height:47px;display:flex;align-items:center;padding:0 13px;border-right:1px solid transparent;color:#7f8993;font-size:11px;position:relative;white-space:nowrap}.tab.active{color:#fff}.tab.active::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;background:var(--accent)}
+.code-area{display:grid;grid-template-columns:46px minmax(0,1fr);min-height:0;background:#0a0c0f}.gutter{padding:16px 8px 40px 0;color:#414a55;text-align:right;font:11px/21px var(--mono);overflow:hidden;user-select:none}.source{padding:16px 22px 40px 0;margin:0;overflow:auto;white-space:pre;font:11px/21px var(--mono);color:#dce2e7;tab-size:2}
+.t-blue{color:#8cbcff}.t-green{color:#b8e983}.t-yellow{color:#ffd47c}.t-purple{color:#c6a3ff}.t-muted{color:#626c77}
+.terminal{min-height:0;border-top:1px solid var(--line);background:#0e1115;display:grid;grid-template-rows:37px minmax(0,1fr)}.term-head{display:flex;align-items:center;gap:17px;padding:0 12px;border-bottom:1px solid #1c2228}.term-tab{height:37px;color:#737e89;font-size:10px;position:relative}.term-tab.active{color:#fff}.term-tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--accent)}.term-body{padding:9px 13px;overflow:auto;font:10px/18px var(--mono);color:#8b96a1}.term-prompt{color:var(--accent)}.term-ok{color:var(--ok)}.term-warn{color:var(--warn)}
+.ai-head{height:49px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--line)}.ai-title{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700}.ai-mark{width:25px;height:25px;border:1px solid #476129;border-radius:7px;display:grid;place-items:center;background:#eaffbb;color:#151b0e;font-size:9px;font-weight:800}.model-select{height:29px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:#11161b;color:#aab4be;font-size:9px;outline:0}
+.chat{min-height:0;overflow:auto;padding:14px 13px 138px}.msg{margin-bottom:18px}.msg-head{display:flex;align-items:center;gap:7px;margin-bottom:7px;color:#dce2e7;font-size:10px;font-weight:700}.msg-time{color:#555f69;font-weight:500}.avatar{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:8px;font-weight:800}.avatar.ai{background:#eaffbb;color:#151b0e}.avatar.you{background:#252c34;color:#dde2e6}.msg-body{font-size:11px;line-height:1.65;color:#b9c2ca}.msg-body strong{color:#fff}.msg-body p{margin:0 0 8px}.meta-line{font:9px var(--mono);color:#65707a;margin:7px 0}
+.change{border:1px solid var(--line);border-radius:8px;background:#0d1115;margin-top:8px;overflow:hidden}.change-head{min-height:37px;padding:0 9px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);font:9px var(--mono);color:#8d97a0}.change-actions{display:flex;gap:5px}.mini{height:26px;padding:0 8px;border:1px solid var(--line);border-radius:5px;font-size:9px;color:#adb6be;background:#11161b}.mini.apply{background:var(--accent);border-color:var(--accent);color:#10130b;font-weight:700}.diff{margin:0;padding:9px 10px;overflow:auto;max-height:230px;font:9px/16px var(--mono);white-space:pre}.diff-add{color:#a9d97b}.diff-del{color:#e47f7f}.diff-hunk{color:#7ca8cf}.empty{padding:28px 8px;text-align:center;color:#5f6973;font-size:10px;line-height:1.7}.composer{position:absolute;right:0;bottom:0;width:min(430px,100%);padding:10px;background:linear-gradient(180deg,rgba(15,18,22,0),#0f1216 24% 100%);pointer-events:none}.composer-box{pointer-events:auto;border:1px solid #303841;border-radius:9px;background:#11161b;box-shadow:var(--shadow);padding:8px}.composer textarea{width:100%;min-height:66px;max-height:150px;resize:none;border:0;outline:0;background:transparent;color:#eef2f4;font-size:11px;line-height:1.55}.composer textarea::placeholder{color:#5c6670}.composer-foot{display:flex;justify-content:space-between;align-items:center;margin-top:7px}.commands{display:flex;gap:5px}.command{height:23px;padding:0 7px;border:1px solid var(--line);border-radius:5px;background:#0f1419;color:#747f89;font:9px var(--mono)}.send{width:28px;height:28px;border-radius:6px;background:var(--accent);color:#10130b;font-weight:800}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.66);display:none;align-items:center;justify-content:center;z-index:50}.modal{width:min(700px,calc(100vw - 26px));border:1px solid #323a43;border-radius:12px;background:#101419;box-shadow:0 30px 110px rgba(0,0,0,.58);overflow:hidden}.modal-head{min-height:54px;padding:0 17px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}.modal-title{font-size:13px;font-weight:700}.modal-sub{font-size:9px;color:#707b85;margin-top:2px}.modal-body{padding:16px}.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.plan{border:1px solid var(--line);border-radius:9px;background:#0d1115;padding:13px}.plan.featured{border-color:#4e632d;box-shadow:inset 0 0 0 1px rgba(200,255,74,.06)}.plan h3{margin:0 0 3px;font-size:12px}.plan .price{font-size:22px;font-weight:700;letter-spacing:-.03em}.plan .price small{font-size:9px;color:#707a84;font-weight:400}.plan p{min-height:35px;font-size:9px;line-height:1.5;color:#7f8993}.plan ul{list-style:none;padding:0;margin:11px 0 13px}.plan li{padding:4px 0;color:#aab4bd;font-size:9px;border-top:1px solid #1e242a}.plan li:first-child{border-top:0}.plan button{width:100%;height:30px;border:1px solid var(--line);border-radius:6px;font-size:9px;color:#c3cbd2;background:#11161b}.plan.featured button{background:var(--accent);border-color:var(--accent);color:#10130b;font-weight:700}
+.account{display:flex;align-items:center;gap:7px;padding:0 8px;height:31px;border:1px solid var(--line);border-radius:7px;background:#0f1419;color:#c5ccd3;font-size:10px}.account img{width:20px;height:20px;border-radius:5px}.account span{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,20px);background:#181e24;border:1px solid #37414b;border-radius:7px;padding:9px 12px;font-size:10px;color:#dbe1e6;opacity:0;pointer-events:none;transition:.2s;z-index:100}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:1060px){.workspace{grid-template-columns:210px 1fr}.agent{display:none}}
+@media(max-width:720px){body{overflow:auto}.app{height:auto;min-height:100%}.workspace{display:block}.sidebar{display:none}.editor{min-height:calc(100vh - 54px);grid-template-rows:47px 470px 168px}.agent{display:block;height:650px;border-left:0;border-top:1px solid var(--line)}.top-actions .status{display:none}.brand-name{display:none}.plans{grid-template-columns:1fr}.account span{display:none}}
 </style>
 </head>
 <body>
 <div class="app">
 <header class="topbar">
-  <div class="brand"><div class="logo">C</div><span>Codebase</span></div>
+  <div class="brand"><div class="logo">C</div><div class="brand-name">Codebase</div></div>
   <div class="top-actions">
-    <div class="status"><i class="dot"></i> Ready</div>
-    <button class="top-btn" id="githubBtn">Sign in with GitHub</button>
+    <div class="status" id="status"><i class="status-dot"></i><span>Offline</span></div>
     <button class="top-btn" id="plansBtn">Plans</button>
-    <button class="icon-btn" aria-label="Settings">⚙</button>
+    <button class="top-btn primary" id="authBtn">Sign in with GitHub</button>
   </div>
 </header>
 <main class="workspace">
   <aside class="sidebar">
-    <div class="side-head"><span>Explorer</span><span>⌘ P</span></div>
-    <div class="repo">
-      <div class="repo-top"><div class="repo-name">coding-platform-v1</div><div class="repo-branch">main</div></div>
-      <div class="repo-path">playtimehuh-ops / coding-platform-v1</div>
+    <div class="section-head"><span>Explorer</span><span>⌘ P</span></div>
+    <div class="repo-select">
+      <label>Repository</label>
+      <select id="repoSelect"><option value="">Sign in to load repositories</option></select>
+      <div class="repo-meta" id="repoMeta">No repository selected</div>
     </div>
-    <div class="tree">
-      <div class="tree-row dir"><span class="chev">⌄</span><span class="file-icon">□</span><span>src</span></div>
-      <div class="nested">
-        <div class="tree-row active"><span class="chev"></span><span class="file-icon">JS</span><span>app.js</span></div>
-        <div class="tree-row"><span class="chev"></span><span class="file-icon">TS</span><span>api.ts</span></div>
-        <div class="tree-row"><span class="chev"></span><span class="file-icon">TS</span><span>github.ts</span></div>
-      </div>
-      <div class="tree-row dir"><span class="chev">⌄</span><span class="file-icon">□</span><span>components</span></div>
-      <div class="nested">
-        <div class="tree-row"><span class="chev"></span><span class="file-icon">TS</span><span>ChatPanel.tsx</span></div>
-        <div class="tree-row"><span class="chev"></span><span class="file-icon">TS</span><span>Editor.tsx</span></div>
-      </div>
-      <div class="tree-row"><span class="chev"></span><span class="file-icon">JS</span><span>index.html</span></div>
-      <div class="tree-row"><span class="chev"></span><span class="file-icon">{ }</span><span>package.json</span></div>
-      <div class="tree-row"><span class="chev"></span><span class="file-icon">MD</span><span>README.md</span></div>
-    </div>
-    <div class="side-footer">
-      <div class="usage"><span>Monthly usage</span><span>38%</span></div><div class="bar"><i></i></div>
+    <div class="tree" id="tree"><div class="empty">Your repositories will appear here after GitHub sign-in.</div></div>
+    <div class="side-bottom">
+      <div class="usage"><span>Monthly agent use</span><span id="usageText">0 / 20</span></div>
+      <div class="usage-bar"><span id="usageBar"></span></div>
     </div>
   </aside>
+
   <section class="editor">
-    <div class="tabbar">
-      <div class="tab">app.js <span class="close">×</span></div>
-      <div class="tab">github.ts <span class="close">×</span></div>
-    </div>
-    <div class="code-wrap">
-      <div class="lines" id="lines"></div>
-      <pre class="code" id="code"></pre>
-    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="code-area"><div class="gutter" id="gutter"></div><pre class="source" id="source"></pre></div>
     <div class="terminal">
-      <div class="term-tabs"><button class="term-tab active">TERMINAL</button><button class="term-tab">PROBLEMS <span>0</span></button><button class="term-tab">OUTPUT</button></div>
-      <div class="term-body" id="terminal">
-        <div class="term-line"><span class="prompt">~/coding-platform-v1 $</span> npm run dev</div>
-        <div class="term-line">Starting development server…</div>
-        <div class="term-line"><span class="ok">✓</span> ready in 412ms · http://localhost:3000</div>
-        <div class="term-line c-muted">AI workspace initialized. Waiting for your next change.</div>
-      </div>
+      <div class="term-head"><button class="term-tab active">TERMINAL</button><button class="term-tab">PROBLEMS <span id="problemCount">0</span></button><button class="term-tab">ACTIVITY</button></div>
+      <div class="term-body" id="terminal"><div><span class="term-warn">•</span> Sign in with GitHub to start a coding session.</div></div>
     </div>
   </section>
-  <aside class="rightbar">
+
+  <aside class="agent">
     <div class="ai-head">
       <div class="ai-title"><div class="ai-mark">AI</div><span>Code Agent</span></div>
-      <button class="model" id="modelBtn">Smart routing · Auto⌄</button>
+      <select class="model-select" id="modelSelect"><option>Smart routing · Auto</option><option>OpenAI · Coding</option></select>
     </div>
     <div class="chat" id="chat">
-      <div class="msg">
-        <div class="msg-head"><div class="avatar assistant">AI</div> Code Agent <span style="color:#56606b">· now</span></div>
-        <p>I’m connected to this workspace. Ask me to inspect the codebase, implement a feature, fix a bug, or prepare a clean patch.</p>
-      </div>
-      <div class="msg">
-        <div class="msg-head"><div class="avatar you">YOU</div> You <span style="color:#56606b">· now</span></div>
-        <p>Make the landing page feel polished and production-ready.</p>
-      </div>
-      <div class="msg">
-        <div class="msg-head"><div class="avatar assistant">AI</div> Code Agent <span style="color:#56606b">· now</span></div>
-        <p>I’d start by tightening spacing, typography, hierarchy, and interaction states rather than adding decorative effects. I can then apply the changes as a focused patch.</p>
-        <div class="patch">
-          <div class="patch-head"><span>Suggested patch · index.html</span><span>+18 −7</span></div>
-          <pre><span class="add">+ .hero { max-width: 920px; margin:auto; }</span>
-<span class="add">+ .hero h1 { letter-spacing:-.045em; }</span>
-<span class="del">- .hero { padding: 120px 20px; }</span>
-<span class="add">+ .hero { padding: 86px 24px 72px; }</span></pre>
-        </div>
-      </div>
+      <div class="empty">A focused coding agent.<br>Ask for a feature, bug fix, refactor, test, or explanation.</div>
     </div>
     <div class="composer">
-      <div class="composer-inner">
-        <textarea id="prompt" placeholder="Describe the code change you want…"></textarea>
-        <div class="compose-foot">
-          <div class="chips"><button class="chip">/fix</button><button class="chip">/explain</button><button class="chip">/test</button></div>
-          <button class="send" id="sendBtn">↑</button>
+      <div class="composer-box">
+        <textarea id="prompt" placeholder="Describe the code change…"></textarea>
+        <div class="composer-foot">
+          <div class="commands"><button class="command">/fix</button><button class="command">/explain</button><button class="command">/test</button></div>
+          <button class="send" id="sendBtn" aria-label="Send">↑</button>
         </div>
       </div>
     </div>
   </aside>
 </main>
 </div>
-<div class="overlay" id="overlay">
+
+<div class="overlay" id="plansOverlay">
   <div class="modal">
-    <div class="modal-head"><strong>Choose a plan</strong><button class="icon-btn" id="closeModal">×</button></div>
-    <div class="modal-body">
-      <div class="plan-grid">
-        <div class="plan"><h3>Free</h3><div class="price">$0</div><p>For trying the workspace and small projects.</p><button>Current plan</button></div>
-        <div class="plan featured"><h3>Builder</h3><div class="price">$12<small>/mo</small></div><p>More agent runs, larger context, private projects.</p><button>Choose Builder</button></div>
-        <div class="plan"><h3>Team</h3><div class="price">$29<small>/seat</small></div><p>Higher limits, shared projects, team controls.</p><button>Choose Team</button></div>
-      </div>
-    </div>
+    <div class="modal-head"><div><div class="modal-title">Plans</div><div class="modal-sub">Usage and model access are controlled server-side.</div></div><button class="icon-btn" id="closePlans">×</button></div>
+    <div class="modal-body"><div class="plans" id="plans"></div></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
+
 <script>
-const code = String.raw`import { createAgent } from "./api";
-
-const agent = createAgent({
-  mode: "coding",
-  routing: "auto",
-  repository: "coding-platform-v1",
-});
-
-export async function runTask(prompt) {
-  const result = await agent.execute({
-    prompt,
-    context: "repository",
-    output: "patch",
-  });
-
-  return {
-    summary: result.summary,
-    files: result.files,
-    patch: result.patch,
-  };
-}`;
-
-document.getElementById("code").textContent = code;
-document.getElementById("lines").textContent = code.split("\n").map((_,i)=>i+1).join("\n");
-
-const toast = (msg) => {
-  const el = document.getElementById("toast");
-  el.textContent = msg; el.classList.add("show");
-  clearTimeout(window.__toast); window.__toast = setTimeout(()=>el.classList.remove("show"),2200);
+const state = {
+  user:null, repos:[], repo:"", context:null, activeFile:null, used:0, plan:"free"
 };
 
-document.getElementById("plansBtn").onclick=()=>document.getElementById("overlay").style.display="flex";
-document.getElementById("closeModal").onclick=()=>document.getElementById("overlay").style.display="none";
-document.getElementById("overlay").onclick=(e)=>{if(e.target.id==="overlay")e.currentTarget.style.display="none"};
-async function loadAuth(){
-  const button=document.getElementById("githubBtn");
+const $ = id => document.getElementById(id);
+const toast = message => {
+  $("toast").textContent=message; $("toast").classList.add("show");
+  clearTimeout(window.__toast); window.__toast=setTimeout(()=>$("toast").classList.remove("show"),2200);
+};
+
+function setStatus(label, online=true){
+  $("status").innerHTML='<i class="status-dot"></i><span>'+label+'</span>';
+  $("status").style.borderColor=online?"#29331f":"#2b3036";
+}
+
+function log(message, tone=""){
+  const line=document.createElement("div");
+  line.innerHTML=tone==="ok"?'<span class="term-ok">✓</span> '+message:tone==="warn"?'<span class="term-warn">•</span> '+message:message;
+  $("terminal").appendChild(line); $("terminal").scrollTop=$("terminal").scrollHeight;
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",""":"&quot;","'":"&#39;"}[ch]));
+}
+
+function simpleDiff(before, after){
+  const a=String(before||"").split("\n"), b=String(after||"").split("\n");
+  const rows=["@@ file change @@"];
+  const max=Math.max(a.length,b.length);
+  for(let i=0;i<max;i++){
+    if(a[i]===b[i]) rows.push("  "+(a[i]??""));
+    else {
+      if(i<a.length) rows.push("- "+a[i]);
+      if(i<b.length) rows.push("+ "+b[i]);
+    }
+  }
+  return rows.join("\n");
+}
+
+function renderCode(){
+  const file=state.activeFile;
+  if(!file){$("source").textContent="// Select a source file to inspect it.";$("gutter").textContent="1";return}
+  $("source").textContent=file.content;
+  $("gutter").textContent=file.content.split("\n").map((_,i)=>i+1).join("\n");
+  $("tabs").innerHTML='<div class="tab active">'+escapeHtml(file.path)+'</div>';
+}
+
+function renderTree(){
+  if(!state.context){$("tree").innerHTML='<div class="empty">Select a repository to inspect its files.</div>';return}
+  const files=state.context.files;
+  $("tree").innerHTML=files.map(file =>
+    '<button class="tree-row '+(state.activeFile?.path===file.path?"active":"")+'" data-path="'+escapeHtml(file.path)+'">'+
+    '<span class="tree-icon">'+(file.path.endsWith(".json")?"{}":file.path.match(/\.([^.]+)$/)?.[1]?.toUpperCase().slice(0,2)||"F")+'</span>'+
+    '<span class="tree-name">'+escapeHtml(file.path)+'</span></button>'
+  ).join("");
+  document.querySelectorAll(".tree-row").forEach(row=>row.onclick=()=>{
+    state.activeFile=state.context.files.find(file=>file.path===row.dataset.path)||null;
+    renderTree(); renderCode();
+  });
+}
+
+async function loadSession(){
   try{
-    const res=await fetch("/api/auth?action=me",{credentials:"same-origin"});
-    const data=await res.json();
-    if(data.authenticated){
-      button.textContent=data.user.login;
-      button.onclick=()=>{ if(confirm("Sign out of Codebase?")) location.href="/api/auth?action=logout"; };
-      button.title="Signed in with GitHub";
+    const response=await fetch("/api/auth?action=me",{credentials:"same-origin"});
+    const data=await response.json();
+    state.user=data.authenticated?data.user:null;
+    if(state.user){
+      $("authBtn").className="account";
+      $("authBtn").innerHTML=(state.user.avatar_url?'<img src="'+escapeHtml(state.user.avatar_url)+'" alt="">':"")+"<span>"+escapeHtml(state.user.login)+"</span>";
+      $("authBtn").onclick=()=>{if(confirm("Sign out of Codebase?")) location.href="/api/auth?action=logout";};
+      setStatus("Connected");
+      await loadRepos();
     }else{
-      button.textContent="Sign in with GitHub";
-      button.onclick=()=>location.href="/api/auth?action=login";
+      $("authBtn").className="top-btn primary";
+      $("authBtn").textContent="Sign in with GitHub";
+      $("authBtn").onclick=()=>location.href="/api/auth?action=login";
+      setStatus("Offline",false);
     }
   }catch{
-    button.onclick=()=>location.href="/api/auth?action=login";
+    setStatus("Offline",false);
   }
 }
-loadAuth();
-document.getElementById("modelBtn").onclick=()=>toast("Smart routing: provider selection will be configurable from Settings.");
 
-document.querySelectorAll(".chip").forEach(btn=>{
-  btn.onclick=()=>{const p=document.getElementById("prompt");p.value=btn.textContent+" ";p.focus()};
-});
+async function loadRepos(){
+  const response=await fetch("/api/github",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"repos"})});
+  const data=await response.json();
+  if(!response.ok) throw new Error(data.error||"Could not load repositories.");
+  state.repos=data.repositories||[];
+  $("repoSelect").innerHTML=state.repos.length?state.repos.map(repo=>'<option value="'+escapeHtml(repo.full_name)+'">'+escapeHtml(repo.full_name)+(repo.private?" · private":"")+'</option>').join(""):'<option value="">No repositories found</option>';
+  if(state.repos.length){state.repo=state.repos[0].full_name;$("repoSelect").value=state.repo;await loadRepo(state.repo);}
+}
 
-async function sendPrompt(){
-  const input=document.getElementById("prompt");
-  const value=input.value.trim(); if(!value)return;
-  const chat=document.getElementById("chat");
-  const user=document.createElement("div"); user.className="msg";
-  user.innerHTML='<div class="msg-head"><div class="avatar you">YOU</div> You <span style="color:#56606b">· now</span></div><p></p>';
-  user.querySelector("p").textContent=value; chat.appendChild(user);
+async function loadRepo(repo){
+  if(!repo)return;
+  state.repo=repo; state.activeFile=null; state.context=null;
+  $("repoMeta").textContent="Loading repository…"; $("tree").innerHTML='<div class="empty">Reading repository…</div>';
+  log("Reading "+repo+"…");
+  const response=await fetch("/api/github",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"context",repo})});
+  const data=await response.json();
+  if(!response.ok) throw new Error(data.error||"Could not read repository.");
+  state.context=data;
+  $("repoMeta").textContent=data.branch+" · "+(data.language||"mixed");
+  state.activeFile=data.files.find(file=>file.path==="README.md")||data.files.find(file=>file.path==="package.json")||data.files[0]||null;
+  renderTree(); renderCode();
+  log(data.files.length+" files indexed for the coding agent.","ok");
+}
+
+function addMessage(who, body, className=""){
+  const wrapper=document.createElement("div"); wrapper.className="msg "+className;
+  const avatar=who==="AI"?'<div class="avatar ai">AI</div>':'<div class="avatar you">YOU</div>';
+  wrapper.innerHTML='<div class="msg-head">'+avatar+' '+who+' <span class="msg-time">· now</span></div><div class="msg-body"></div>';
+  wrapper.querySelector(".msg-body").textContent=body;
+  $("chat").appendChild(wrapper); $("chat").scrollTop=$("chat").scrollHeight;
+  return wrapper;
+}
+
+function addAgentResult(data){
+  const wrapper=document.createElement("div"); wrapper.className="msg";
+  let html='<div class="msg-head"><div class="avatar ai">AI</div> Code Agent <span class="msg-time">· now</span></div>';
+  html+='<div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Task analyzed.")+'</strong></p>';
+  if(data.rationale) html+='<p>'+escapeHtml(data.rationale)+'</p>';
+  if(Array.isArray(data.tests)&&data.tests.length) html+='<div class="meta-line">Tests to run</div>'+data.tests.map(test=>'<p>• '+escapeHtml(test)+'</p>').join("");
+  if(Array.isArray(data.changes)&&data.changes.length){
+    data.changes.forEach((change,i)=>{
+      const original=state.context?.files.find(file=>file.path===change.path)?.content||"";
+      html+='<div class="change" data-index="'+i+'"><div class="change-head"><span>'+escapeHtml(change.path)+'</span><span>'+Math.max(0,simpleDiff(original,change.content).split("\n").filter(x=>x.startsWith("+ ")).length-1)+' additions</span></div>';
+      html+='<pre class="diff">'+escapeHtml(simpleDiff(original,change.content))+'</pre>';
+      html+='<div style="padding:8px;display:flex;justify-content:flex-end"><div class="change-actions"><button class="mini apply one">Apply</button></div></div></div>';
+    });
+    html+='<div style="display:flex;justify-content:flex-end;margin-top:9px"><button class="mini apply all">Apply all changes</button></div>';
+  } else {
+    html+='<div class="meta-line">No repository files need changing.</div>';
+  }
+  html+='</div>';
+  wrapper.innerHTML=html; $("chat").appendChild(wrapper); $("chat").scrollTop=$("chat").scrollHeight;
+
+  const changes=data.changes||[];
+  wrapper.querySelectorAll(".one").forEach((button,index)=>button.onclick=()=>applyChanges([changes[index]]));
+  const all=wrapper.querySelector(".all"); if(all) all.onclick=()=>applyChanges(changes);
+}
+
+async function applyChanges(changes){
+  if(!state.user){toast("Sign in with GitHub first.");return}
+  if(!changes.length)return;
+  addMessage("AI","Applying the approved patch to "+state.repo+"…");
+  log("Applying "+changes.length+" file change"+(changes.length===1?"":"s")+"…");
+  const response=await fetch("/api/github",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+    action:"apply",repo:state.repo,branch:state.context.branch,message:"feat: apply AI coding changes",changes
+  })});
+  const data=await response.json();
+  if(!response.ok){toast(data.error||"Apply failed.");log(data.error||"Apply failed.","warn");return}
+  toast("Changes committed to GitHub.");
+  log("GitHub accepted the patch.","ok");
+  await loadRepo(state.repo);
+}
+
+async function send(){
+  const input=$("prompt"), prompt=input.value.trim();
+  if(!prompt)return;
+  if(!state.user){toast("Sign in with GitHub first.");return}
+  if(!state.repo){toast("Choose a repository first.");return}
   input.value="";
-  const thinking=document.createElement("div"); thinking.className="msg";
-  thinking.innerHTML='<div class="msg-head"><div class="avatar assistant">AI</div> Code Agent <span style="color:#56606b">· now</span></div><p>Reviewing the workspace and preparing a focused coding response…</p>';
-  chat.appendChild(thinking); chat.scrollTop=chat.scrollHeight;
+  addMessage("YOU",prompt);
+  const thinking=addMessage("AI","Inspecting the repository and planning the change…");
+  log("Agent task: "+prompt);
+  $("sendBtn").disabled=true;
   try{
-    const res=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:value,repo:"coding-platform-v1"})});
-    if(!res.ok)throw new Error();
-    const data=await res.json();
-    thinking.querySelector("p").textContent=data.message||"Task received.";
-  }catch{
-    thinking.querySelector("p").textContent="Task staged. Connect the server-side model adapter at /api/chat to enable live code edits, diffs, and GitHub commits.";
-  }
+    const response=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,repo:state.repo})});
+    const data=await response.json();
+    thinking.remove();
+    if(!response.ok){addMessage("AI",data.error||"The coding agent failed.");log(data.error||"Agent failed.","warn");return}
+    state.used++; updateUsage();
+    addAgentResult(data);
+    log("Proposal ready; waiting for approval.","ok");
+  }catch(error){
+    thinking.remove();addMessage("AI",error.message||"Network error.");log(error.message||"Network error","warn");
+  }finally{$("sendBtn").disabled=false}
 }
-document.getElementById("sendBtn").onclick=sendPrompt;
-document.getElementById("prompt").addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key==="Enter")sendPrompt()});
+
+async function loadPlans(){
+  const response=await fetch("/api/billing",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"catalog"})});
+  const data=await response.json();
+  const plans=data.plans||{};
+  $("plans").innerHTML=Object.values(plans).map(plan=>{
+    const paid=plan.price>0;
+    const featured=plan.id==="builder";
+    return '<div class="plan '+(featured?"featured":"")+'"><h3>'+escapeHtml(plan.name)+'</h3><div class="price">$'+plan.price+'<small>/mo</small></div><p>'+plan.runs.toLocaleString()+' agent runs per month.</p><ul><li>'+plan.contextFiles+' files in context</li><li>'+plan.privateRepos+' repository'+(plan.privateRepos===1?"":"ies")+' available</li><li>'+plan.models.join(", ")+' routing</li></ul><button class="'+(featured?"primary":"")+'" data-plan="'+plan.id+'">'+(paid?"Choose "+escapeHtml(plan.name):"Current plan")+'</button></div>';
+  }).join("");
+  $("plans").querySelectorAll("button[data-plan]").forEach(button=>button.onclick=async()=>{
+    const plan=button.dataset.plan;
+    if(plan==="free"){toast("Free plan selected.");return}
+    if(!state.user){toast("Sign in before upgrading.");return}
+    button.disabled=true;
+    try{
+      const response=await fetch("/api/billing",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"checkout",plan})});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"Checkout is not configured.");
+      location.href=data.url;
+    }catch(error){button.disabled=false;toast(error.message)}
+  });
+}
+
+function updateUsage(){
+  const limit=state.plan==="builder"?500:state.plan==="team"?2000:20;
+  $("usageText").textContent=state.used+" / "+limit;
+  $("usageBar").style.width=Math.min(100,(state.used/limit)*100)+"%";
+}
+
+$("repoSelect").onchange=()=>loadRepo($("repoSelect").value).catch(e=>toast(e.message));
+$("sendBtn").onclick=send;
+$("prompt").addEventListener("keydown",event=>{if((event.ctrlKey||event.metaKey)&&event.key==="Enter")send()});
+document.querySelectorAll(".command").forEach(button=>button.onclick=()=>{$("prompt").value=button.textContent+" ";$("prompt").focus()});
+$("plansBtn").onclick=()=>{$("plansOverlay").style.display="flex";loadPlans().catch(e=>toast(e.message))};
+$("closePlans").onclick=()=>$("plansOverlay").style.display="none";
+$("plansOverlay").onclick=e=>{if(e.target.id==="plansOverlay")e.currentTarget.style.display="none"};
+$("modelSelect").onchange=()=>toast("Model selection is controlled by your plan and server configuration.");
+
+loadSession().catch(error=>toast(error.message));
+updateUsage();
 </script>
 </body>
 </html>
