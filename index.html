@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="A focused AI coding workspace for GitHub projects.">
+<title>Codebase — AI coding workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0d10;--panel:#101317;--panel2:#14181d;--panel3:#181d23;--line:#252b33;
+  --text:#f2f4f7;--muted:#8b949e;--dim:#68717c;--accent:#c8ff4a;--accent2:#9fd72e;
+  --danger:#ff6b6b;--warning:#ffc857;--shadow:0 16px 48px rgba(0,0,0,.32);
+  --sans:"DM Sans",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
+button,input,textarea{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+.app{height:100%;display:grid;grid-template-rows:54px 1fr}
+.topbar{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:0 16px;background:rgba(11,13,16,.94)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.02em}
+.logo{width:25px;height:25px;border:1px solid #3d4650;border-radius:7px;display:grid;place-items:center;background:#12161b;color:var(--accent);font-size:13px;font-family:var(--mono)}
+.brand span{font-size:14px}
+.top-actions{display:flex;align-items:center;gap:7px}
+.icon-btn,.top-btn{height:32px;border:1px solid var(--line);border-radius:7px;padding:0 10px;display:inline-flex;align-items:center;gap:7px;background:#101418;color:#b9c0c8;font-size:12px}
+.icon-btn:hover,.top-btn:hover{background:#171c22;color:#fff;border-color:#333b44}
+.primary{background:var(--accent);border-color:var(--accent);color:#10130b;font-weight:700}
+.primary:hover{background:#d6ff77;color:#10130b}
+.status{display:inline-flex;align-items:center;gap:7px;padding:0 10px;height:30px;border:1px solid #26301f;border-radius:999px;background:#10150d;color:#bddf76;font-size:11px;font-weight:600}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(200,255,74,.08)}
+.workspace{min-height:0;display:grid;grid-template-columns:220px minmax(420px,1fr) minmax(330px,420px);background:var(--bg)}
+.sidebar,.rightbar{min-height:0;background:var(--panel);border-right:1px solid var(--line)}
+.rightbar{border-right:0;border-left:1px solid var(--line)}
+.side-head{height:52px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;color:#aeb6bf;text-transform:uppercase;letter-spacing:.09em}
+.repo{margin:12px;border:1px solid var(--line);background:#12171c;border-radius:9px;padding:11px}
+.repo-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.repo-name{font-size:13px;font-weight:700}.repo-branch{font:10px var(--mono);color:#8e99a4}
+.repo-path{font:11px var(--mono);color:var(--muted);margin-top:6px}
+.tree{padding:5px 7px;overflow:auto;height:calc(100% - 150px)}
+.tree-row{display:flex;align-items:center;gap:7px;height:31px;padding:0 8px;border-radius:6px;color:#aab2bb;font-size:12px}
+.tree-row:hover{background:#161b21;color:#eef2f5}.tree-row.active{background:#1b2229;color:#fff}
+.tree-row.dir{color:#d2d7dc}.chev{font-size:10px;width:10px;color:#6e7781}.file-icon{width:13px;text-align:center;font:10px var(--mono);color:#69737d}
+.nested{padding-left:20px}
+.side-footer{position:absolute;bottom:0;width:220px;border-top:1px solid var(--line);padding:10px;background:var(--panel)}
+.usage{font-size:10px;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:7px}
+.bar{height:4px;background:#20262d;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;width:38%;background:var(--accent)}
+.editor{min-width:0;min-height:0;display:grid;grid-template-rows:48px minmax(0,1fr) 176px}
+.tabbar{display:flex;align-items:end;border-bottom:1px solid var(--line);background:#0d1014;padding:0 12px;overflow:auto}
+.tab{height:48px;padding:0 14px;display:flex;align-items:center;border-right:1px solid transparent;color:#808a95;font-size:12px;white-space:nowrap;position:relative}
+.tab:first-child{color:#fff}.tab:first-child:after{content:"";position:absolute;bottom:0;left:11px;right:11px;height:2px;background:var(--accent)}
+.tab .close{margin-left:8px;color:#515963;font-size:13px}
+.code-wrap{min-height:0;display:grid;grid-template-columns:50px minmax(0,1fr);background:#0b0d10}
+.lines{padding:17px 10px 40px 0;text-align:right;color:#46505b;font:12px/22px var(--mono);user-select:none;overflow:hidden}
+.code{margin:0;padding:17px 22px 40px 0;overflow:auto;font:12px/22px var(--mono);white-space:pre;color:#dce2e8;tab-size:2}
+.c-blue{color:#7cb7ff}.c-green{color:#b9e77d}.c-yellow{color:#ffd479}.c-purple{color:#c7a5ff}.c-red{color:#ff9b9b}.c-muted{color:#5e6974}
+.terminal{background:#0e1115;border-top:1px solid var(--line);min-height:0;display:grid;grid-template-rows:39px minmax(0,1fr)}
+.term-tabs{display:flex;align-items:center;border-bottom:1px solid #1d2228;padding:0 12px;gap:18px}
+.term-tab{height:39px;color:#7f8993;font-size:11px;position:relative}.term-tab.active{color:#fff}.term-tab.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--accent)}
+.term-body{padding:11px 15px;overflow:auto;font:11px/19px var(--mono);color:#8f99a3}.term-line{white-space:pre}.prompt{color:var(--accent)}.ok{color:#abc776}
+.ai-head{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--line)}
+.ai-title{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700}.ai-mark{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:#eaffbb;color:#171d0d;font-size:11px;font-weight:800}
+.model{display:flex;align-items:center;gap:6px;height:29px;padding:0 8px;border:1px solid var(--line);background:#11161b;border-radius:6px;color:#adb5be;font-size:10px}
+.chat{min-height:0;overflow:auto;padding:16px 15px 115px}
+.msg{margin-bottom:18px}.msg-head{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;margin-bottom:7px}.avatar{width:21px;height:21px;border-radius:6px;display:grid;place-items:center;font-size:9px;font-weight:800}.you{background:#242b33;color:#d7dce1}.assistant{background:#eaffbb;color:#151c0c}
+.msg p{margin:0;color:#c3cbd3;font-size:12px;line-height:1.65}.msg p strong{color:#fff}
+.patch{margin-top:10px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#0d1014}
+.patch-head{padding:8px 10px;border-bottom:1px solid var(--line);font:10px var(--mono);color:#89939e;display:flex;justify-content:space-between}
+.patch pre{margin:0;padding:10px;font:10px/17px var(--mono);overflow:auto}.add{color:#a7d878}.del{color:#e67f7f}
+.composer{position:absolute;right:0;bottom:0;width:min(420px,100%);padding:12px;background:linear-gradient(180deg,transparent,#101317 15% 100%);pointer-events:none}
+.composer-inner{pointer-events:auto;border:1px solid #303841;background:#11161b;border-radius:10px;box-shadow:var(--shadow);padding:9px}
+textarea{width:100%;min-height:68px;max-height:140px;resize:none;border:0;outline:none;background:transparent;font-size:12px;line-height:1.5;color:#e7ebef}
+textarea::placeholder{color:#626c76}
+.compose-foot{display:flex;align-items:center;justify-content:space-between;margin-top:7px}.chips{display:flex;gap:5px}.chip{border:1px solid var(--line);border-radius:5px;padding:5px 7px;font-size:9px;color:#7e8994;background:#0e1318}.send{width:29px;height:29px;border-radius:7px;background:var(--accent);color:#10130b;font-weight:800}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.63);display:none;align-items:center;justify-content:center;z-index:10}
+.modal{width:min(520px,calc(100vw - 30px));border:1px solid #303840;background:#11161b;border-radius:13px;box-shadow:0 30px 100px rgba(0,0,0,.5);overflow:hidden}
+.modal-head{padding:17px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.modal-body{padding:18px}.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.plan{border:1px solid var(--line);background:#0d1115;border-radius:9px;padding:13px}.plan.featured{border-color:#52692b;box-shadow:inset 0 0 0 1px rgba(200,255,74,.08)}.plan h3{margin:0 0 5px;font-size:13px}.price{font-size:20px;font-weight:700}.price small{font-size:10px;color:var(--muted);font-weight:400}.plan p{font-size:10px;color:var(--muted);line-height:1.5;min-height:30px}.plan button{width:100%;height:31px;border:1px solid var(--line);border-radius:6px;font-size:10px;color:#cbd2d9}.plan.featured button{background:var(--accent);border-color:var(--accent);color:#10130b;font-weight:700}
+.toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,20px);background:#171c21;border:1px solid #313940;padding:9px 12px;border-radius:7px;color:#d8dde2;font-size:11px;opacity:0;pointer-events:none;transition:.2s;z-index:20}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:1050px){.workspace{grid-template-columns:200px minmax(400px,1fr)}.rightbar{display:none}}
+@media (max-width:720px){body{overflow:auto}.app{height:auto;min-height:100%}.workspace{grid-template-columns:1fr;display:block}.sidebar{display:none}.editor{min-height:calc(100vh - 54px);grid-template-rows:48px minmax(420px,1fr) 176px}.rightbar{display:block;height:620px;border-left:0;border-top:1px solid var(--line)}.composer{position:fixed}.top-actions .status{display:none}.brand span{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <div class="brand"><div class="logo">C</div><span>Codebase</span></div>
+  <div class="top-actions">
+    <div class="status"><i class="dot"></i> Ready</div>
+    <button class="top-btn" id="githubBtn">Connect GitHub</button>
+    <button class="top-btn" id="plansBtn">Plans</button>
+    <button class="icon-btn" aria-label="Settings">⚙</button>
+  </div>
+</header>
+<main class="workspace">
+  <aside class="sidebar">
+    <div class="side-head"><span>Explorer</span><span>⌘ P</span></div>
+    <div class="repo">
+      <div class="repo-top"><div class="repo-name">coding-platform-v1</div><div class="repo-branch">main</div></div>
+      <div class="repo-path">playtimehuh-ops / coding-platform-v1</div>
+    </div>
+    <div class="tree">
+      <div class="tree-row dir"><span class="chev">⌄</span><span class="file-icon">□</span><span>src</span></div>
+      <div class="nested">
+        <div class="tree-row active"><span class="chev"></span><span class="file-icon">JS</span><span>app.js</span></div>
+        <div class="tree-row"><span class="chev"></span><span class="file-icon">TS</span><span>api.ts</span></div>
+        <div class="tree-row"><span class="chev"></span><span class="file-icon">TS</span><span>github.ts</span></div>
+      </div>
+      <div class="tree-row dir"><span class="chev">⌄</span><span class="file-icon">□</span><span>components</span></div>
+      <div class="nested">
+        <div class="tree-row"><span class="chev"></span><span class="file-icon">TS</span><span>ChatPanel.tsx</span></div>
+        <div class="tree-row"><span class="chev"></span><span class="file-icon">TS</span><span>Editor.tsx</span></div>
+      </div>
+      <div class="tree-row"><span class="chev"></span><span class="file-icon">JS</span><span>index.html</span></div>
+      <div class="tree-row"><span class="chev"></span><span class="file-icon">{ }</span><span>package.json</span></div>
+      <div class="tree-row"><span class="chev"></span><span class="file-icon">MD</span><span>README.md</span></div>
+    </div>
+    <div class="side-footer">
+      <div class="usage"><span>Monthly usage</span><span>38%</span></div><div class="bar"><i></i></div>
+    </div>
+  </aside>
+  <section class="editor">
+    <div class="tabbar">
+      <div class="tab">app.js <span class="close">×</span></div>
+      <div class="tab">github.ts <span class="close">×</span></div>
+    </div>
+    <div class="code-wrap">
+      <div class="lines" id="lines"></div>
+      <pre class="code" id="code"></pre>
+    </div>
+    <div class="terminal">
+      <div class="term-tabs"><button class="term-tab active">TERMINAL</button><button class="term-tab">PROBLEMS <span>0</span></button><button class="term-tab">OUTPUT</button></div>
+      <div class="term-body" id="terminal">
+        <div class="term-line"><span class="prompt">~/coding-platform-v1 $</span> npm run dev</div>
+        <div class="term-line">Starting development server…</div>
+        <div class="term-line"><span class="ok">✓</span> ready in 412ms · http://localhost:3000</div>
+        <div class="term-line c-muted">AI workspace initialized. Waiting for your next change.</div>
+      </div>
+    </div>
+  </section>
+  <aside class="rightbar">
+    <div class="ai-head">
+      <div class="ai-title"><div class="ai-mark">AI</div><span>Code Agent</span></div>
+      <button class="model" id="modelBtn">Smart routing · Auto⌄</button>
+    </div>
+    <div class="chat" id="chat">
+      <div class="msg">
+        <div class="msg-head"><div class="avatar assistant">AI</div> Code Agent <span style="color:#56606b">· now</span></div>
+        <p>I’m connected to this workspace. Ask me to inspect the codebase, implement a feature, fix a bug, or prepare a clean patch.</p>
+      </div>
+      <div class="msg">
+        <div class="msg-head"><div class="avatar you">YOU</div> You <span style="color:#56606b">· now</span></div>
+        <p>Make the landing page feel polished and production-ready.</p>
+      </div>
+      <div class="msg">
+        <div class="msg-head"><div class="avatar assistant">AI</div> Code Agent <span style="color:#56606b">· now</span></div>
+        <p>I’d start by tightening spacing, typography, hierarchy, and interaction states rather than adding decorative effects. I can then apply the changes as a focused patch.</p>
+        <div class="patch">
+          <div class="patch-head"><span>Suggested patch · index.html</span><span>+18 −7</span></div>
+          <pre><span class="add">+ .hero { max-width: 920px; margin:auto; }</span>
+<span class="add">+ .hero h1 { letter-spacing:-.045em; }</span>
+<span class="del">- .hero { padding: 120px 20px; }</span>
+<span class="add">+ .hero { padding: 86px 24px 72px; }</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="composer">
+      <div class="composer-inner">
+        <textarea id="prompt" placeholder="Describe the code change you want…"></textarea>
+        <div class="compose-foot">
+          <div class="chips"><button class="chip">/fix</button><button class="chip">/explain</button><button class="chip">/test</button></div>
+          <button class="send" id="sendBtn">↑</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+</main>
+</div>
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head"><strong>Choose a plan</strong><button class="icon-btn" id="closeModal">×</button></div>
+    <div class="modal-body">
+      <div class="plan-grid">
+        <div class="plan"><h3>Free</h3><div class="price">$0</div><p>For trying the workspace and small projects.</p><button>Current plan</button></div>
+        <div class="plan featured"><h3>Builder</h3><div class="price">$12<small>/mo</small></div><p>More agent runs, larger context, private projects.</p><button>Choose Builder</button></div>
+        <div class="plan"><h3>Team</h3><div class="price">$29<small>/seat</small></div><p>Higher limits, shared projects, team controls.</p><button>Choose Team</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const code = String.raw`import { createAgent } from "./api";
+
+const agent = createAgent({
+  mode: "coding",
+  routing: "auto",
+  repository: "coding-platform-v1",
+});
+
+export async function runTask(prompt) {
+  const result = await agent.execute({
+    prompt,
+    context: "repository",
+    output: "patch",
+  });
+
+  return {
+    summary: result.summary,
+    files: result.files,
+    patch: result.patch,
+  };
+}`;
+
+document.getElementById("code").textContent = code;
+document.getElementById("lines").textContent = code.split("\n").map((_,i)=>i+1).join("\n");
+
+const toast = (msg) => {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(window.__toast); window.__toast = setTimeout(()=>el.classList.remove("show"),2200);
+};
+
+document.getElementById("plansBtn").onclick=()=>document.getElementById("overlay").style.display="flex";
+document.getElementById("closeModal").onclick=()=>document.getElementById("overlay").style.display="none";
+document.getElementById("overlay").onclick=(e)=>{if(e.target.id==="overlay")e.currentTarget.style.display="none"};
+document.getElementById("githubBtn").onclick=()=>toast("GitHub connection flow is ready for the backend.");
+document.getElementById("modelBtn").onclick=()=>toast("Smart routing: provider selection will be configurable from Settings.");
+
+document.querySelectorAll(".chip").forEach(btn=>{
+  btn.onclick=()=>{const p=document.getElementById("prompt");p.value=btn.textContent+" ";p.focus()};
+});
+
+async function sendPrompt(){
+  const input=document.getElementById("prompt");
+  const value=input.value.trim(); if(!value)return;
+  const chat=document.getElementById("chat");
+  const user=document.createElement("div"); user.className="msg";
+  user.innerHTML='<div class="msg-head"><div class="avatar you">YOU</div> You <span style="color:#56606b">· now</span></div><p></p>';
+  user.querySelector("p").textContent=value; chat.appendChild(user);
+  input.value="";
+  const thinking=document.createElement("div"); thinking.className="msg";
+  thinking.innerHTML='<div class="msg-head"><div class="avatar assistant">AI</div> Code Agent <span style="color:#56606b">· now</span></div><p>Reviewing the workspace and preparing a focused coding response…</p>';
+  chat.appendChild(thinking); chat.scrollTop=chat.scrollHeight;
+  try{
+    const res=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:value,repo:"coding-platform-v1"})});
+    if(!res.ok)throw new Error();
+    const data=await res.json();
+    thinking.querySelector("p").textContent=data.message||"Task received.";
+  }catch{
+    thinking.querySelector("p").textContent="Task staged. Connect the server-side model adapter at /api/chat to enable live code edits, diffs, and GitHub commits.";
+  }
+}
+document.getElementById("sendBtn").onclick=sendPrompt;
+document.getElementById("prompt").addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key==="Enter")sendPrompt()});
+</script>
+</body>
+</html>
