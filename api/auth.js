@@ -165,6 +165,13 @@ export default async function handler(request) {
         });
       }
 
+      if (action === "logout") {
+        return new Response(null, {
+          status: 204,
+          headers: { "Set-Cookie": clearCookie(ACCOUNT_COOKIE) }
+        });
+      }
+
       if (action === "update") {
         const session = readSession(request);
         if (!session?.accessToken) return json({ error: "Sign in first." }, 401);
