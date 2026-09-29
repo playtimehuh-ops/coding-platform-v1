@@ -156,17 +156,20 @@ async function authRequest(action,payload){
 
 function setAuthMode(mode){
   const signup=mode==="signup";
+  const recovery=mode==="recovery";
   $("authForm").dataset.mode=mode;
   $("signupMode").classList.toggle("active",signup);
-  $("loginMode").classList.toggle("active",!signup);
+  $("loginMode").classList.toggle("active",!signup && !recovery);
+  $("signupMode").style.display=recovery?"none":"block";
+  $("loginMode").style.display=recovery?"none":"block";
   $("nameWrap").style.display=signup?"block":"none";
-  $("authPassword").setAttribute("autocomplete",signup?"new-password":"current-password");
-  $("authTitle").textContent=signup?"Build with AI.":"Welcome back.";
-  $("authSubtitle").textContent=signup?
-    "Create your Codebase account. GitHub is an optional repository integration.":
-    "Log in to continue your coding workspace.";
-  $("authSubmit").textContent=signup?"Create account":"Log in";
-  $("forgotBtn").style.visibility=signup?"hidden":"visible";
+  $("authEmail").style.display=recovery?"none":"block";
+  $("authEmail").required=!recovery;
+  $("authPassword").setAttribute("autocomplete",recovery?"new-password":signup?"new-password":"current-password");
+  $("authTitle").textContent=recovery?"Choose a new password":signup?"Build with AI.":"Welcome back.";
+  $("authSubtitle").textContent=recovery?"Set a new password for your Codebase account.":signup?"Create your Codebase account. GitHub is an optional repository integration.":"Log in to continue your coding workspace.";
+  $("authSubmit").textContent=recovery?"Set password":signup?"Create account":"Log in";
+  $("forgotBtn").style.visibility=signup||recovery?"hidden":"visible";
   $("authNote").textContent="";
   $("authNote").className="auth-note";
 }
@@ -179,6 +182,15 @@ async function submitAuth(event){
   note.textContent="Working…";
   note.className="auth-note";
   try{
+    if(mode==="recovery"){
+      await authRequest("recover",{access_token:state.recovery.accessToken,refresh_token:state.recovery.refreshToken,newPassword:$("authPassword").value});
+      history.replaceState({},document.title,location.pathname+location.search);
+      state.recovery=null;
+      await refreshSession();
+      toast("Password updated.");
+      return;
+    }
+
     const payload={email:$("authEmail").value.trim(),password:$("authPassword").value};
     if(mode==="signup")payload.name=$("authName").value.trim();
     const data=await authRequest(mode,payload);
@@ -195,6 +207,33 @@ async function submitAuth(event){
     note.textContent=error.message||"Authentication failed.";
     note.className="auth-note error";
   }finally{button.disabled=false}
+}
+
+async function handleAuthRedirect(){
+  const hash=new URLSearchParams(location.hash.replace(/^#/,""));
+  const accessToken=hash.get("access_token");
+  if(!accessToken)return false;
+  const refreshToken=hash.get("refresh_token")||"";
+  const type=hash.get("type")||"";
+  try{
+    if(type==="recovery"){
+      state.recovery={accessToken,refreshToken};
+      setAuthMode("recovery");
+      $("authGate").style.display="flex";
+      $("authNote").textContent="Choose a new password.";
+      $("authNote").className="auth-note ok";
+    }else{
+      await authRequest("complete",{access_token:accessToken,refresh_token:refreshToken});
+      history.replaceState({},document.title,location.pathname+location.search);
+      toast("Email verified.");
+      await refreshSession();
+    }
+    return true;
+  }catch(error){
+    $("authNote").textContent=error.message||"Could not complete authentication.";
+    $("authNote").className="auth-note error";
+    return false;
+  }
 }
 
 $("authForm").addEventListener("submit",submitAuth);
@@ -558,8 +597,8 @@ $("logoutBtn").onclick=async()=>{
   try{await authRequest("logout",{});}finally{location.reload()}
 };
 
+handleAuthRedirect().finally(()=>refreshSession().catch(error=>toast(error.message)));
 setAuthMode("signup");
-refreshSession().catch(error=>toast(error.message));
 </script>
 </body>
 </html>
