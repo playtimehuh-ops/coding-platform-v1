@@ -175,6 +175,18 @@ function renderTree(){
   });
 }
 
+async function loadAccount(){
+  try{
+    const response=await fetch("/api/account",{credentials:"same-origin"});
+    const data=await response.json();
+    if(data.authenticated){
+      state.plan=data.plan||"free";
+      state.used=data.usage?.used||0;
+      updateUsage();
+    }
+  }catch{}
+}
+
 async function loadSession(){
   try{
     const response=await fetch("/api/auth?action=me",{credentials:"same-origin"});
@@ -265,9 +277,18 @@ async function applyChanges(changes){
   })});
   const data=await response.json();
   if(!response.ok){toast(data.error||"Apply failed.");log(data.error||"Apply failed.","warn");return}
-  toast("Changes committed to GitHub.");
-  log("GitHub accepted the patch.","ok");
+  toast("Pull request created.");
+  log("Changes committed to branch "+data.branch+".","ok");
+  if(data.pull_request?.url){
+    addMessage("AI","Pull request #"+data.pull_request.number+" is ready for review.");
+    const link=document.createElement("a");
+    link.href=data.pull_request.url; link.target="_blank"; link.rel="noopener";
+    link.textContent="Open pull request";
+    link.style.cssText="display:inline-block;margin:7px 0 0 28px;color:#c8ff4a;font-size:10px";
+    $("chat").lastElementChild.querySelector(".msg-body")?.appendChild(link);
+  }
   await loadRepo(state.repo);
+  await loadAccount();
 }
 
 async function send(){
@@ -285,7 +306,9 @@ async function send(){
     const data=await response.json();
     thinking.remove();
     if(!response.ok){addMessage("AI",data.error||"The coding agent failed.");log(data.error||"Agent failed.","warn");return}
-    state.used++; updateUsage();
+    state.used=data.usage?.used ?? (state.used+1);
+    state.plan=data.plan||state.plan;
+    updateUsage();
     addAgentResult(data);
     log("Proposal ready; waiting for approval.","ok");
   }catch(error){
@@ -332,6 +355,7 @@ $("plansOverlay").onclick=e=>{if(e.target.id==="plansOverlay")e.currentTarget.st
 $("modelSelect").onchange=()=>toast("Model selection is controlled by your plan and server configuration.");
 
 loadSession().catch(error=>toast(error.message));
+loadAccount();
 updateUsage();
 </script>
 </body>
