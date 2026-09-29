@@ -24,7 +24,7 @@ function env(name) {
 
 function supabaseHeaders(token) {
   return {
-    apikey: env("SUPABASE_ANON_KEY"),
+    apikey: env("SUPABASE_PUBLISHABLE_KEY"),
     ...(token ? { Authorization: "Bearer " + token } : {}),
     "Content-Type": "application/json"
   };
