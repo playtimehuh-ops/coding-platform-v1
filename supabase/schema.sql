@@ -67,3 +67,7 @@ begin
   return next_runs;
 end;
 $$;
+
+-- Usage increments are server-only; never expose this RPC to browser roles.
+REVOKE EXECUTE ON FUNCTION public.increment_usage(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_usage(uuid, text) TO service_role;
