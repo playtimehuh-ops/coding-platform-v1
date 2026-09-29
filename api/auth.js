@@ -1,18 +1,19 @@
-import { randomBytes } from "node:crypto";
-import { STATE_COOKIE, SESSION_COOKIE, SESSION_AGE, cookie, parseCookie, readSession, encodeSession, publicSession } from "../lib/auth.js";
+import {
+  ACCOUNT_COOKIE,
+  SESSION_AGE,
+  encodeAccountSession,
+  publicSession,
+  readSession,
+  cookie,
+  clearCookie
+} from "../lib/auth.js";
 import { upsertUser } from "../lib/db.js";
 
-function json(data, status = 200, extra = {}) {
+function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", ...extra }
+    headers: { "content-type": "application/json; charset=utf-8" }
   });
-}
-
-function redirect(url, cookies = []) {
-  const headers = new Headers({ Location: url });
-  for (const value of cookies) headers.append("Set-Cookie", value);
-  return new Response(null, { status: 302, headers });
 }
 
 function env(name) {
@@ -21,36 +22,48 @@ function env(name) {
   return value;
 }
 
-async function githubToken(code, redirectUri) {
-  const response = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: env("GITHUB_CLIENT_ID"),
-      client_secret: env("GITHUB_CLIENT_SECRET"),
-      code,
-      redirect_uri: redirectUri
-    })
-  });
-  const data = await response.json();
-  if (!response.ok || !data.access_token) {
-    throw new Error(data.error_description || "GitHub sign-in failed.");
-  }
-  return data.access_token;
+function supabaseHeaders(token) {
+  return {
+    apikey: env("SUPABASE_ANON_KEY"),
+    ...(token ? { Authorization: "Bearer " + token } : {}),
+    "Content-Type": "application/json"
+  };
 }
 
-async function githubUser(accessToken) {
-  const response = await fetch("https://api.github.com/user", {
+async function supabase(path, options = {}) {
+  const response = await fetch(env("SUPABASE_URL").replace(/\/$/, "") + path, {
+    ...options,
     headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: "Bearer " + accessToken,
-      "X-GitHub-Api-Version": "2026-03-10",
-      "User-Agent": "coding-platform-v1"
+      ...supabaseHeaders(options.accessToken),
+      ...(options.headers || {})
     }
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || "Could not read GitHub profile.");
+
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = { message: text }; }
+
+  if (!response.ok) {
+    throw new Error(data?.msg || data?.error_description || data?.message || "Authentication request failed.");
+  }
+
   return data;
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validatePassword(password) {
+  return typeof password === "string" && password.length >= 8 && password.length <= 256;
+}
+
+function setSession(user, accessToken, refreshToken) {
+  return cookie(
+    ACCOUNT_COOKIE,
+    encodeAccountSession(user, accessToken, refreshToken),
+    SESSION_AGE
+  );
 }
 
 export default async function handler(request) {
@@ -58,51 +71,152 @@ export default async function handler(request) {
     const url = new URL(request.url);
     const action = url.searchParams.get("action") || "me";
 
-    if (action === "login") {
-      const state = randomBytes(24).toString("hex");
-      const redirectUri = url.origin + "/api/auth?action=callback";
-      const authUrl = new URL("https://github.com/login/oauth/authorize");
-      authUrl.searchParams.set("client_id", env("GITHUB_CLIENT_ID"));
-      authUrl.searchParams.set("redirect_uri", redirectUri);
-      authUrl.searchParams.set("scope", "repo workflow read:user user:email");
-      authUrl.searchParams.set("state", state);
-      return redirect(authUrl.toString(), [cookie(STATE_COOKIE, state, 600)]);
+    if (request.method === "GET" && action === "me") {
+      const session = readSession(request);
+      if (!session) return json({ authenticated: false, user: null });
+      return json({ authenticated: true, user: publicSession(session) });
     }
 
-    if (action === "callback") {
-      const code = url.searchParams.get("code") || "";
-      const state = url.searchParams.get("state") || "";
-      const savedState = parseCookie(request, STATE_COOKIE);
+    if (request.method === "POST") {
+      const body = await request.json();
 
-      if (!code || !state || !savedState || state !== savedState) {
-        return json({ error: "Invalid OAuth state." }, 400);
+      if (action === "signup") {
+        const email = String(body.email || "").trim().toLowerCase();
+        const password = String(body.password || "");
+        const name = String(body.name || "").trim().slice(0, 80);
+
+        if (!validateEmail(email)) return json({ error: "Enter a valid email address." }, 400);
+        if (!validatePassword(password)) return json({ error: "Password must be at least 8 characters." }, 400);
+
+        const data = await supabase("/auth/v1/signup", {
+          method: "POST",
+          body: JSON.stringify({
+            email,
+            password,
+            data: { display_name: name || "Developer" }
+          })
+        });
+
+        if (data.user) {
+          await upsertUser(data.user);
+        }
+
+        if (!data.session) {
+          return json({
+            ok: true,
+            requiresConfirmation: true,
+            message: "Account created. Check your email to verify it before signing in."
+          });
+        }
+
+        return json({
+          ok: true,
+          user: publicSession({
+            sub: data.user.id,
+            email: data.user.email,
+            name: name || "Developer"
+          })
+        }, 200, {
+          "Set-Cookie": setSession(data.user, data.session.access_token, data.session.refresh_token)
+        });
       }
 
-      const redirectUri = url.origin + "/api/auth?action=callback";
-      const accessToken = await githubToken(code, redirectUri);
-      const user = await githubUser(accessToken);
-      await upsertUser(user);
-      const session = encodeSession(user, accessToken);
+      if (action === "login") {
+        const email = String(body.email || "").trim().toLowerCase();
+        const password = String(body.password || "");
 
-      return redirect("/", [
-        cookie(SESSION_COOKIE, session, SESSION_AGE),
-        cookie(STATE_COOKIE, "", 0)
-      ]);
+        if (!validateEmail(email) || !password) return json({ error: "Enter your email and password." }, 400);
+
+        const data = await supabase("/auth/v1/token?grant_type=password", {
+          method: "POST",
+          body: JSON.stringify({ email, password })
+        });
+
+        await upsertUser(data.user);
+
+        return json({
+          ok: true,
+          user: publicSession({
+            sub: data.user.id,
+            email: data.user.email,
+            user_metadata: data.user.user_metadata
+          })
+        }, 200, {
+          "Set-Cookie": setSession(data.user, data.access_token, data.refresh_token)
+        });
+      }
+
+      if (action === "forgot") {
+        const email = String(body.email || "").trim().toLowerCase();
+        if (!validateEmail(email)) return json({ error: "Enter a valid email address." }, 400);
+
+        const origin = url.origin;
+        await supabase("/auth/v1/recover", {
+          method: "POST",
+          body: JSON.stringify({
+            email,
+            redirect_to: origin + "/?recovery=1"
+          })
+        });
+
+        return json({
+          ok: true,
+          message: "If the address is eligible, a password reset email has been sent."
+        });
+      }
+
+      if (action === "update") {
+        const session = readSession(request);
+        if (!session?.accessToken) return json({ error: "Sign in first." }, 401);
+
+        const name = String(body.name || "").trim().slice(0, 80);
+        const password = body.password == null ? null : String(body.password);
+
+        if (password !== null && !validatePassword(password)) {
+          return json({ error: "New password must be at least 8 characters." }, 400);
+        }
+
+        const userData = {};
+        if (name) userData.data = { display_name: name };
+        if (password !== null) userData.password = password;
+
+        const data = await supabase("/auth/v1/user", {
+          method: "PUT",
+          accessToken: session.accessToken,
+          body: JSON.stringify(userData)
+        });
+
+        await upsertUser(data);
+
+        return json({
+          ok: true,
+          user: publicSession(data)
+        }, 200, {
+          "Set-Cookie": setSession(data, session.accessToken, session.refreshToken)
+        });
+      }
+
+      return json({ error: "Unknown auth action." }, 400);
     }
 
-    if (action === "me") {
-      const session = readSession(request);
-      return json({
-        authenticated: Boolean(session),
-        user: publicSession(session)
+    if (request.method === "POST" && action === "logout") {
+      return new Response(null, {
+        status: 204,
+        headers: { "Set-Cookie": clearCookie(ACCOUNT_COOKIE) }
       });
     }
 
-    if (action === "logout") {
-      return redirect("/", [cookie(SESSION_COOKIE, "", 0)]);
+    if (request.method === "GET" && action === "logout") {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: "/",
+          "Set-Cookie": clearCookie(ACCOUNT_COOKIE)
+        }
+      });
     }
 
-    return json({ error: "Unknown auth action." }, 400);
+    return json({ error: "Unsupported request." }, 405);
   } catch (error) {
     return json({ error: error.message || "Authentication failed." }, 500);
   }
