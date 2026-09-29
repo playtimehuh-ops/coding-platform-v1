@@ -79,7 +79,8 @@ async function runOpenRouter(input, requestUrl, model) {
       messages: [{ role: "system", content: SYSTEM }, { role: "user", content: input }],
       temperature: 0.15,
       max_tokens: 24000,
-      response_format: { type: "json_schema", json_schema: { name: "coding_task", strict: true, schema: SCHEMA } }
+      response_format: { type: "json_schema", json_schema: { name: "coding_task", strict: true, schema: SCHEMA } },
+      provider: { require_parameters: true }
     })
   });
   const data = await response.json();
@@ -89,11 +90,7 @@ async function runOpenRouter(input, requestUrl, model) {
   try { return JSON.parse(content); } catch { throw new Error("OpenRouter returned invalid structured output."); }
 }
 
-function modelFor(plan) {
-  if (plan === "team") return env("OPENROUTER_TEAM_MODEL", "openrouter/free");
-  if (plan === "builder") return env("OPENROUTER_BUILDER_MODEL", "openrouter/free");
-  return env("OPENROUTER_FREE_MODEL", "openrouter/free");
-}
+function modelFor() { return env("OPENROUTER_MODEL", "openrouter/auto"); }
 
 export default async function handler(request) {
   if (request.method !== "POST") return json({ error: "POST required." }, 405);
@@ -115,7 +112,7 @@ export default async function handler(request) {
     const limit = PLAN_LIMITS[plan].runs;
     if (dbConfigured() && used >= limit) return json({ error: "Monthly agent limit reached.", plan, usage: { used, limit, remaining: 0 } }, 429);
     const context = await collectRepository(repo, githubToken, PLAN_LIMITS[plan].contextFiles);
-    const model = modelFor(plan);
+    const model = modelFor();
     const result = await runOpenRouter(buildInput(prompt, context), request.url, model);
     const nextUsed = dbConfigured() ? await addUsage(session.sub) : used + 1;
     return json({ ok: true, provider: "openrouter", model, repository: context.repository, branch: context.branch, summary: result.summary, rationale: result.rationale, tests: result.tests, changes: result.changes, plan, usage: { used: nextUsed, limit, remaining: Math.max(0, limit - nextUsed) }, persistence: dbConfigured() });
