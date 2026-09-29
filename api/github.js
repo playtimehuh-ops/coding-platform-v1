@@ -92,23 +92,34 @@ export async function collectRepository(repo, accessToken, maxFiles = 40) {
     files.filter(file => !important.some(item => item.path === file.path))
   ).slice(0, maxFiles);
 
+  const loaded = await Promise.all(selected.map(async file => {
+    try {
+      const data = await github(
+        "/repos/" + repo + "/contents/" + encodePath(file.path) +
+        "?ref=" + encodeURIComponent(meta.default_branch),
+        accessToken
+      );
+
+      if (data.encoding !== "base64" || typeof data.content !== "string") return null;
+
+      const content = Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8");
+      return {
+        path: file.path,
+        sha: data.sha,
+        size: content.length,
+        content: content.slice(0, 8000)
+      };
+    } catch {
+      return null;
+    }
+  }));
+
   const contents = [];
-  for (const file of selected) {
-    const data = await github(
-      "/repos/" + repo + "/contents/" + encodePath(file.path) +
-      "?ref=" + encodeURIComponent(meta.default_branch),
-      accessToken
-    );
-
-    if (data.encoding !== "base64" || typeof data.content !== "string") continue;
-
-    const content = Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8");
-    contents.push({
-      path: file.path,
-      sha: data.sha,
-      size: content.length,
-      content: content.slice(0, 16000)
-    });
+  let total = 0;
+  for (const file of loaded.filter(Boolean)) {
+    if (total + file.content.length > 120000) break;
+    contents.push(file);
+    total += file.content.length;
   }
 
   return {
@@ -116,7 +127,8 @@ export async function collectRepository(repo, accessToken, maxFiles = 40) {
     branch: meta.default_branch,
     description: meta.description || "",
     language: meta.language || null,
-    files: contents
+    files: contents,
+    context_chars: total
   };
 }
 
