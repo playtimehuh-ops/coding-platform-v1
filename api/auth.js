@@ -123,7 +123,11 @@ export default async function handler(request) {
             sub: data.user.id,
             email: data.user.email,
             name: name || "Developer"
-          })
+          }),
+          session: {
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token
+          }
         }, 200, {
           "Set-Cookie": setSession(data.user, data.session.access_token, data.session.refresh_token)
         });
@@ -148,7 +152,11 @@ export default async function handler(request) {
             sub: data.user.id,
             email: data.user.email,
             user_metadata: data.user.user_metadata
-          })
+          }),
+          session: {
+            access_token: data.access_token,
+            refresh_token: data.refresh_token
+          }
         }, 200, {
           "Set-Cookie": setSession(data.user, data.access_token, data.refresh_token)
         });
@@ -193,7 +201,8 @@ export default async function handler(request) {
 
         return json({
           ok: true,
-          user: publicSession(data)
+          user: publicSession(data),
+          session: { access_token: accessToken, refresh_token: refreshToken }
         }, 200, {
           "Set-Cookie": setSession(data, accessToken, refreshToken)
         });
@@ -215,7 +224,8 @@ export default async function handler(request) {
 
         return json({
           ok: true,
-          user: publicSession(data)
+          user: publicSession(data),
+          session: { access_token: accessToken, refresh_token: refreshToken }
         }, 200, {
           "Set-Cookie": setSession(data, accessToken, refreshToken)
         });
