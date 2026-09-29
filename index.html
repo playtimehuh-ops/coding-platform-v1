@@ -89,7 +89,7 @@ textarea::placeholder{color:#626c76}
   <div class="brand"><div class="logo">C</div><span>Codebase</span></div>
   <div class="top-actions">
     <div class="status"><i class="dot"></i> Ready</div>
-    <button class="top-btn" id="githubBtn">Connect GitHub</button>
+    <button class="top-btn" id="githubBtn">Sign in with GitHub</button>
     <button class="top-btn" id="plansBtn">Plans</button>
     <button class="icon-btn" aria-label="Settings">⚙</button>
   </div>
@@ -226,7 +226,24 @@ const toast = (msg) => {
 document.getElementById("plansBtn").onclick=()=>document.getElementById("overlay").style.display="flex";
 document.getElementById("closeModal").onclick=()=>document.getElementById("overlay").style.display="none";
 document.getElementById("overlay").onclick=(e)=>{if(e.target.id==="overlay")e.currentTarget.style.display="none"};
-document.getElementById("githubBtn").onclick=()=>toast("GitHub connection flow is ready for the backend.");
+async function loadAuth(){
+  const button=document.getElementById("githubBtn");
+  try{
+    const res=await fetch("/api/auth?action=me",{credentials:"same-origin"});
+    const data=await res.json();
+    if(data.authenticated){
+      button.textContent=data.user.login;
+      button.onclick=()=>{ if(confirm("Sign out of Codebase?")) location.href="/api/auth?action=logout"; };
+      button.title="Signed in with GitHub";
+    }else{
+      button.textContent="Sign in with GitHub";
+      button.onclick=()=>location.href="/api/auth?action=login";
+    }
+  }catch{
+    button.onclick=()=>location.href="/api/auth?action=login";
+  }
+}
+loadAuth();
 document.getElementById("modelBtn").onclick=()=>toast("Smart routing: provider selection will be configurable from Settings.");
 
 document.querySelectorAll(".chip").forEach(btn=>{
