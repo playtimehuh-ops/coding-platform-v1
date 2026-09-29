@@ -52,7 +52,7 @@ Only these deployment variables are required:
 
 Do **not** put the OpenRouter key, Stripe secret, Stripe webhook secret, or Supabase secret key in `index.html`.
 
-Supabase documents publishable keys as browser-safe and secret keys as backend-only. citeturn578856search1turn578856search2
+Supabase documents publishable keys as browser-safe and secret keys as backend-only.
 
 ## Supabase setup
 
@@ -64,13 +64,13 @@ Supabase documents publishable keys as browser-safe and secret keys as backend-o
 6. Enable manual identity linking so signed-in Codebase accounts can link GitHub.
 7. Add your deployed site URL to Supabase's allowed redirect URLs.
 
-Supabase supports linking GitHub to an existing signed-in identity with `linkIdentity`, and its OAuth flow can return a provider access token for server-side GitHub API work. citeturn578856search0turn578856search5turn578856search9
+Supabase supports linking GitHub to an existing signed-in identity with `linkIdentity`, and its OAuth flow can return a provider access token for server-side GitHub API work.
 
 ## OpenRouter setup
 
 Create one OpenRouter API key and put it in Vercel as `OPENROUTER_API_KEY`.
 
-Codebase sends agent and review requests to OpenRouter's OpenAI-compatible Chat Completions endpoint. Structured JSON output is used where the selected model supports it; Codebase requires the routed provider to honor the requested parameters. The default model is `openrouter/auto`. citeturn228607search0turn228607search2turn228607search4
+Codebase sends agent and review requests to OpenRouter's OpenAI-compatible Chat Completions endpoint. Structured JSON output is used where the selected model supports it; Codebase requires the routed provider to honor the requested parameters. The default model is `openrouter/auto`.
 
 ## Stripe setup
 
