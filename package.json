@@ -1,10 +1,11 @@
 {
   "name": "coding-platform-v1",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
-  "description": "AI coding workspace with GitHub repository context and server-side model routing.",
+  "description": "AI coding workspace with GitHub repository context, subscriptions and server-side model routing.",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "test": "node scripts/smoke.mjs"
   }
 }
