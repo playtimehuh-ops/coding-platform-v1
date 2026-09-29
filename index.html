@@ -48,16 +48,16 @@ button:disabled{cursor:not-allowed;opacity:.48}
 .toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,20px);background:#181e24;border:1px solid #37414b;border-radius:7px;padding:9px 12px;font-size:10px;color:#dbe1e6;opacity:0;pointer-events:none;transition:.2s;z-index:100}.toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:1060px){.workspace{grid-template-columns:210px 1fr}.agent{display:none}}
 @media(max-width:720px){body{overflow:auto}.app{height:auto;min-height:100%}.workspace{display:block}.sidebar{display:none}.editor{min-height:calc(100vh - 54px);grid-template-rows:47px 470px 168px}.agent{display:block;height:650px;border-left:0;border-top:1px solid var(--line)}.top-actions .status{display:none}.brand-name{display:none}.plans{grid-template-columns:1fr}.account span{display:none}}
-</style>
+.auth-gate{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 0%,rgba(200,255,74,.055),transparent 42%),#090b0e}.auth-card{width:min(430px,calc(100vw - 26px));padding:26px;border:1px solid #303841;border-radius:14px;background:#0f1317;box-shadow:0 35px 130px rgba(0,0,0,.65)}.auth-brand{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700}.auth-mark{width:28px;height:28px;border:1px solid #42505a;border-radius:7px;display:grid;place-items:center;color:var(--accent);font:600 11px var(--mono);background:#12171d}.auth-copy{margin:22px 0 16px}.auth-copy h1{margin:0 0 6px;font-size:25px;letter-spacing:-.045em}.auth-copy p{margin:0;color:#7d8790;font-size:10px;line-height:1.6}.auth-switch{display:flex;padding:3px;border:1px solid var(--line);border-radius:7px;background:#0b0e12;margin-bottom:13px}.auth-switch button{flex:1;height:28px;border-radius:5px;color:#77828c;font-size:9px}.auth-switch button.active{background:#1a2027;color:#fff}.auth-form{display:grid;gap:9px}.auth-form label{display:block;color:#929ca6;font-size:8px;margin-bottom:4px}.auth-form input{width:100%;height:37px;border:1px solid #333c45;border-radius:7px;background:#0b0f13;padding:0 10px;outline:0;font-size:10px}.auth-form .submit{height:39px;border:1px solid var(--accent);border-radius:7px;background:var(--accent);color:#10130b;font-weight:800;font-size:10px}.auth-note{min-height:24px;color:#68737d;font-size:8px;line-height:1.55}.auth-note.error{color:#ff8484}.auth-note.ok{color:#b9df80}.auth-footer{display:flex;justify-content:space-between;margin-top:9px}.auth-link{color:#7d8790;font-size:8px}.auth-link:hover{color:#fff}.small-btn{height:27px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:#10151a;color:#8f99a3;font-size:8px}.small-btn:hover{color:#fff;background:#171c22}.review-item{margin-top:7px;border:1px solid var(--line);border-radius:7px;background:#0d1115;padding:8px}.review-sev{font:7px var(--mono);text-transform:uppercase;letter-spacing:.08em}.review-sev.high{color:#ff8989}.review-sev.medium{color:#edca70}.review-sev.low{color:#9bb7d0}.review-title{font-size:9px;color:#f0f3f5;margin:3px 0}.review-detail{font-size:8px;color:#89949e;line-height:1.5}.review-path{font:7px var(--mono);color:#65717c;margin-top:4px}</style>
 </head>
 <body>
-<div class="app">
+<div class="auth-gate" id="authGate"><div class="auth-card"><div class="auth-brand"><div class="auth-mark">C</div> Codebase</div><div class="auth-copy"><h1 id="authTitle">Build with AI.</h1><p id="authSubtitle">Create your Codebase account. Connect GitHub later only when you want the agent to work on a repository.</p></div><div class="auth-switch"><button id="signupMode" class="active">Create account</button><button id="loginMode">Log in</button></div><form class="auth-form" id="authForm" data-mode="signup"><div id="nameWrap"><label for="authName">Name</label><input id="authName" maxlength="80" autocomplete="name" placeholder="Your name"></div><div><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com"></div><div><label for="authPassword">Password</label><input id="authPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters"></div><button class="submit" id="authSubmit" type="submit">Create account</button><div class="auth-note" id="authNote"></div></form><div class="auth-footer"><button class="auth-link" id="forgotBtn">Forgot password?</button><span class="auth-link">AI software engineering</span></div></div></div><div class="app">
 <header class="topbar">
   <div class="brand"><div class="logo">C</div><div class="brand-name">Codebase</div></div>
   <div class="top-actions">
     <div class="status" id="status"><i class="status-dot"></i><span>Offline</span></div>
     <button class="top-btn" id="plansBtn">Plans</button>
-    <button class="top-btn primary" id="authBtn">Sign in with GitHub</button>
+    <button class="top-btn primary" id="authBtn">Create account</button>
   </div>
 </header>
 <main class="workspace">
@@ -66,7 +66,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
     <div class="repo-select">
       <label>Repository</label>
       <select id="repoSelect"><option value="">Sign in to load repositories</option></select>
-      <div class="repo-meta" id="repoMeta">No repository selected</div>
+      <div class="repo-meta" id="repoMeta">Create an account to start.</div><div style="padding:0 10px 10px"><button class="small-btn" id="githubLinkBtn" style="width:100%">Link GitHub to import repositories</button></div>
     </div>
     <div class="tree" id="tree"><div class="empty">Your repositories will appear here after GitHub sign-in.</div></div>
     <div class="side-bottom">
@@ -79,7 +79,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
     <div class="tabs" id="tabs"></div>
     <div class="code-area"><div class="gutter" id="gutter"></div><pre class="source" id="source"></pre></div>
     <div class="terminal">
-      <div class="term-head"><button class="term-tab active">TERMINAL</button><button class="term-tab">PROBLEMS <span id="problemCount">0</span></button><button class="term-tab">ACTIVITY</button></div>
+      <div class="term-head"><button class="term-tab active">TERMINAL</button><button class="term-tab">PROBLEMS <span id="problemCount">0</span></button><button class="term-tab">ACTIVITY</button><div class="toolbar"><button id="copyFileBtn">Copy</button><button id="downloadFileBtn">Download file</button><button id="downloadRepoBtn">Download repo</button></div></div>
       <div class="term-body" id="terminal"><div><span class="term-warn">•</span> Sign in with GitHub to start a coding session.</div></div>
     </div>
   </section>
@@ -87,7 +87,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
   <aside class="agent">
     <div class="ai-head">
       <div class="ai-title"><div class="ai-mark">AI</div><span>Code Agent</span></div>
-      <select class="model-select" id="modelSelect"><option>Smart routing · Auto</option><option>OpenAI · Coding</option></select>
+      <div style="display:flex;gap:5px;align-items:center"><button class="small-btn" id="reviewBtn">Review</button><select class="model-select" id="modelSelect"><option>Smart routing · Auto</option><option>OpenAI · Coding</option></select></div>
     </div>
     <div class="chat" id="chat">
       <div class="empty">A focused coding agent.<br>Ask for a feature, bug fix, refactor, test, or explanation.</div>
@@ -111,7 +111,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
     <div class="modal-body"><div class="plans" id="plans"></div></div>
   </div>
 </div>
-<div class="toast" id="toast"></div>
+<div class="overlay" id="accountOverlay"><div class="modal"><div class="modal-head"><div><div class="modal-title">Account</div><div class="modal-sub" id="accountSub">Your Codebase account</div></div><button class="icon-btn" id="closeAccount">Close</button></div><div class="modal-body"><div style="display:grid;grid-template-columns:1fr 1fr;gap:9px"><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Profile</div><form id="profileForm" style="display:grid;gap:7px;margin-top:8px"><input id="profileName" style="height:34px;border:1px solid var(--line);border-radius:6px;background:#0b0f13;padding:0 8px;font-size:9px" maxlength="80"><button class="small-btn">Save profile</button></form></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Password</div><form id="passwordForm" style="display:grid;gap:7px;margin-top:8px"><input id="newPassword" type="password" minlength="8" style="height:34px;border:1px solid var(--line);border-radius:6px;background:#0b0f13;padding:0 8px;font-size:9px" placeholder="New password"><button class="small-btn">Change password</button></form></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">GitHub</div><p id="githubAccountText" style="color:#7f8993;font-size:8px;line-height:1.5">Not linked.</p><button class="small-btn" id="manageGithub" style="width:100%;margin-top:6px">Link GitHub</button></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Billing</div><p id="billingText" style="color:#7f8993;font-size:8px;line-height:1.5">No subscription.</p><button class="small-btn" id="manageBilling" style="width:100%;margin-top:6px">Manage billing</button></div></div><button class="small-btn" id="logoutBtn" style="margin-top:10px;width:100%">Log out</button></div></div></div><div class="toast" id="toast"></div>
 
 <script>
 const state = {
