@@ -1,52 +1,59 @@
 # Codebase — coding-platform-v1
 
-A coding-only AI workspace for working directly against GitHub repositories.
+A coding-only AI workspace where users create a Codebase account, optionally link GitHub, ask an AI agent to modify repositories, review the proposed diff, and open a Pull Request.
 
-## What is functional
+## Functional product
 
-- GitHub OAuth sign-in with protected sessions
-- Repository discovery for the signed-in account
-- Repository file indexing and context collection
-- AI coding proposals with structured file changes
-- Visual patch previews
-- Approved changes applied to a new branch
-- Pull request creation for every approved AI change
-- Persistent plan, subscription, and monthly usage data through Supabase
-- Stripe subscription checkout and webhook synchronization
-- Automated JavaScript syntax checks through GitHub Actions
+- Codebase email/password account creation and login
+- Email verification completion flow
+- Password recovery and password change
+- Signed, encrypted, expiring HTTP-only sessions
+- Optional GitHub repository connection
+- Repository discovery, file inspection and context collection
+- AI coding tasks with structured proposals
+- AI code review mode
+- Download individual files
+- Download repository ZIP
+- Download generated AI patches
+- Explicit Apply -> branch -> commit -> Pull Request
+- Persistent monthly usage and subscription state through Supabase
+- Stripe subscription checkout, cancellation state synchronization and billing portal
+- Free / Builder / Team plan limits
+- GitHub Actions syntax checks
 
 ## Architecture
 
 Browser
-  -> GitHub sign-in
-  -> Repository explorer
-  -> Code viewer
-  -> Coding agent
+  -> Codebase account
+  -> optional GitHub connection
+  -> repository explorer
+  -> coding agent
   -> Vercel Functions
-     -> GitHub API
-     -> OpenAI Responses API
-     -> Supabase REST API
-     -> Stripe API
+     -> GitHub
+     -> Supabase Auth + database
+     -> OpenAI
+     -> Stripe
 
-GitHub documents the repository Contents API for creating and updating files, with OAuth/workflow permissions relevant to repository writes. The app uses a branch + Pull Request write path so approved AI changes remain reviewable. citeturn582966search0turn582966search2
+Supabase Auth supports email/password signup and password sign-in, and can require email confirmation before a session is issued. citeturn642296search0turn642296search1
 
-## Environment variables
+## Environment
 
-Configure these in Vercel Project Settings -> Environment Variables.
+Set these in Vercel:
 
-GitHub:
-- GITHUB_CLIENT_ID
-- GITHUB_CLIENT_SECRET
+Account auth:
+- SUPABASE_URL
+- SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
 - AUTH_SECRET
 
 AI:
 - OPENAI_API_KEY
 - OPENAI_MODEL
-- optionally OPENAI_BASE_URL
+- optional OPENAI_BASE_URL
 
-Persistence:
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
+GitHub integration:
+- GITHUB_CLIENT_ID
+- GITHUB_CLIENT_SECRET
 
 Billing:
 - STRIPE_SECRET_KEY
@@ -54,47 +61,50 @@ Billing:
 - STRIPE_PRICE_BUILDER
 - STRIPE_PRICE_TEAM
 
-Never place secrets in index.html, browser JavaScript, or GitHub commits.
+Never put service-role, GitHub client secrets, Stripe secrets, or AI API keys into browser files.
 
-## GitHub OAuth application
+## GitHub integration
 
-Create a GitHub OAuth App and use this callback URL:
+GitHub is not the Codebase login system. A signed-in user can optionally link GitHub when they want repository access.
 
-https://YOUR-DOMAIN/api/auth?action=callback
+Callback URL:
 
-The application requests:
-repo workflow read:user user:email
+https://YOUR-DOMAIN/api/github-link?action=callback
 
-The workflow scope is needed if the OAuth token is later used to modify files under .github/workflows. citeturn582966search0
+The linked OAuth token is encrypted server-side and stored in the GitHub connection record.
 
 ## Supabase setup
 
-Run supabase/schema.sql in the Supabase SQL editor, then set the two Supabase environment variables.
+Run:
 
-The server uses the Supabase REST API with the service role key. The browser does not talk directly to Supabase.
+supabase/schema.sql
+
+in the Supabase SQL editor.
+
+Supabase Auth is the credential system; the public users table stores app profile data, subscriptions store plan state, usage stores monthly runs, and github_connections stores the encrypted repository integration token.
 
 ## Stripe setup
 
-Create recurring Prices for Builder and Team and put their IDs in:
+Create recurring Prices for Builder and Team.
+
+Set:
 - STRIPE_PRICE_BUILDER
 - STRIPE_PRICE_TEAM
 
-Set the Stripe webhook endpoint to:
+Set the webhook endpoint to:
 
 https://YOUR-DOMAIN/api/stripe-webhook
 
-Subscribe it to:
+Subscribe to:
 - checkout.session.completed
 - checkout.session.async_payment_succeeded
 - customer.subscription.created
 - customer.subscription.updated
 - customer.subscription.deleted
 
-Put the webhook secret into STRIPE_WEBHOOK_SECRET.
+The billing portal endpoint is available from the Account panel.
 
-## Plans
-
-The server-side limits are configured in config/plans.js:
+## Current plans
 
 | Plan | Price | Agent runs/month | Context files |
 |---|---:|---:|---:|
@@ -102,31 +112,67 @@ The server-side limits are configured in config/plans.js:
 | Builder | $12 | 500 | 40 |
 | Team | $29 | 2,000 | 80 |
 
-## Security behavior
+Plan limits live in config/plans.js.
 
-- OAuth state is validated before exchanging authorization codes.
-- GitHub tokens are encrypted and stored inside signed HTTP-only sessions.
-- Repository files are treated as untrusted input to the coding model.
-- AI changes are proposals until the user presses Apply.
-- Apply creates a separate branch and Pull Request instead of silently changing main.
-- File paths are validated before writes.
-- Provider credentials are server-only.
+## Coding flow
+
+1. User creates or logs into a Codebase account.
+2. User links GitHub.
+3. User selects a repository.
+4. The server indexes relevant repository files.
+5. The AI produces a structured proposal.
+6. Codebase renders the patch.
+7. User explicitly applies the proposal.
+8. Codebase creates a branch, writes the approved files and opens a Pull Request.
+
+The write path does not silently modify the default branch.
+
+## Downloads
+
+The workspace supports:
+- Download current file
+- Download repository ZIP
+- Download the AI-generated patch
+
+## Security
+
+- Password authentication is delegated to Supabase Auth rather than storing raw passwords.
+- Supabase documents bcrypt-based password hashing for its Auth service. citeturn642296search3
+- Account sessions are signed and encrypted with server-only AUTH_SECRET.
+- Sessions expire after seven days.
+- OAuth state is checked for GitHub linking.
+- GitHub access tokens are encrypted at rest in the application database.
+- AI sees repository files as untrusted content.
+- AI changes stay proposals until explicitly applied.
+- Provider secrets remain server-side.
 - Usage is checked before model execution when persistence is configured.
 
-## Local development
+## Deployment
 
-Use a Node-compatible Vercel development environment:
+This is a server-backed application. GitHub Pages can host static files, but the account, AI, Stripe and protected GitHub features require a Node-compatible serverless deployment.
+
+Recommended deployment target:
+- Vercel
+
+Run locally with:
 
 npm run dev
 
-Run syntax checks:
+Run syntax checks with:
 
 npm test
 
-CI runs those checks on pushes to main and pull requests.
+The GitHub Actions workflow runs the smoke syntax check on pushes to main and on pull requests.
 
-## Deployment note
+## Revenue-oriented product pieces already present
 
-This is intentionally a server-backed application. A static GitHub Pages deployment of index.html alone cannot provide OAuth token exchange, AI provider calls, Stripe webhooks, or protected GitHub writes.
+- Subscription plans
+- Usage metering
+- Paid model access
+- Team tier
+- Billing portal
+- AI code review
+- Repository downloads
+- Pull Request workflow
 
-Deploy the repository as a Vercel project (or another Node-compatible serverless host) and configure the environment variables there.
+These are product mechanisms, not a guarantee of revenue; pricing, distribution, operating costs, model costs, and retention determine whether the business makes money.
