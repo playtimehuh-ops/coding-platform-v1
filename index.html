@@ -113,6 +113,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
 </div>
 <div class="overlay" id="accountOverlay"><div class="modal"><div class="modal-head"><div><div class="modal-title">Account</div><div class="modal-sub" id="accountSub">Your Codebase account</div></div><button class="icon-btn" id="closeAccount">Close</button></div><div class="modal-body"><div style="display:grid;grid-template-columns:1fr 1fr;gap:9px"><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Profile</div><form id="profileForm" style="display:grid;gap:7px;margin-top:8px"><input id="profileName" style="height:34px;border:1px solid var(--line);border-radius:6px;background:#0b0f13;padding:0 8px;font-size:9px" maxlength="80"><button class="small-btn">Save profile</button></form></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Password</div><form id="passwordForm" style="display:grid;gap:7px;margin-top:8px"><input id="newPassword" type="password" minlength="8" style="height:34px;border:1px solid var(--line);border-radius:6px;background:#0b0f13;padding:0 8px;font-size:9px" placeholder="New password"><button class="small-btn">Change password</button></form></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">GitHub</div><p id="githubAccountText" style="color:#7f8993;font-size:8px;line-height:1.5">Not linked.</p><button class="small-btn" id="manageGithub" style="width:100%;margin-top:6px">Link GitHub</button></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Billing</div><p id="billingText" style="color:#7f8993;font-size:8px;line-height:1.5">No subscription.</p><button class="small-btn" id="manageBilling" style="width:100%;margin-top:6px">Manage billing</button></div></div><button class="small-btn" id="logoutBtn" style="margin-top:10px;width:100%">Log out</button></div></div></div><div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const state={user:null,plan:"free",used:0,repo:"",repos:[],context:null,activeFile:null,github:null};
 
@@ -194,6 +195,7 @@ async function submitAuth(event){
     const payload={email:$("authEmail").value.trim(),password:$("authPassword").value};
     if(mode==="signup")payload.name=$("authName").value.trim();
     const data=await authRequest(mode,payload);
+    await syncBrowserSupabase(data.session);
     if(data.requiresConfirmation){
       note.textContent=data.message||"Check your email to verify your account.";
       note.className="auth-note ok";
@@ -223,7 +225,8 @@ async function handleAuthRedirect(){
       $("authNote").textContent="Choose a new password.";
       $("authNote").className="auth-note ok";
     }else{
-      await authRequest("complete",{access_token:accessToken,refresh_token:refreshToken});
+      const data=await authRequest("complete",{access_token:accessToken,refresh_token:refreshToken});
+      await syncBrowserSupabase(data.session);
       history.replaceState({},document.title,location.pathname+location.search);
       toast("Email verified.");
       await refreshSession();
@@ -259,17 +262,17 @@ async function refreshSession(){
 
   if(!state.user){
     $("authGate").style.display="flex";
-    $("accountBtn").className="top-btn primary";
-    $("accountBtn").textContent="Create account";
-    $("accountBtn").onclick=()=>{setAuthMode("signup");openOverlay("authGate")};
+    $("authBtn").className="top-btn primary";
+    $("authBtn").textContent="Create account";
+    $("authBtn").onclick=()=>{setAuthMode("signup");openOverlay("authGate")};
     $("status").innerHTML='<i></i><span>Signed out</span>';
     return;
   }
 
   $("authGate").style.display="none";
-  $("accountBtn").className="account";
-  $("accountBtn").innerHTML="<span>"+escapeHtml(state.user.name||state.user.email)+"</span>";
-  $("accountBtn").onclick=()=>openOverlay("accountOverlay");
+  $("authBtn").className="account";
+  $("authBtn").innerHTML="<span>"+escapeHtml(state.user.name||state.user.email)+"</span>";
+  $("authBtn").onclick=()=>openOverlay("accountOverlay");
   $("status").innerHTML='<i></i><span>Signed in</span>';
   await loadAccount();
   await loadGithubStatus();
@@ -547,8 +550,8 @@ async function loadPlans(){
 }
 
 $("repoSelect").onchange=()=>loadRepo($("repoSelect").value).catch(e=>toast(e.message));
-$("githubLinkBtn").onclick=()=>state.user?location.href="/api/github-link?action=login":openOverlay("authGate");
-$("manageGithub").onclick=()=>state.user?location.href="/api/github-link?action=login":openOverlay("authGate");
+$("githubLinkBtn").onclick=()=>linkGithub();
+$("manageGithub").onclick=()=>linkGithub();
 $("openRepoBtn").onclick=()=>{const r=state.repos.find(x=>x.full_name===state.repo);if(r?.html_url)window.open(r.html_url,"_blank","noopener")};
 $("copyFileBtn").onclick=async()=>{if(!state.activeFile)return;try{await navigator.clipboard.writeText(state.activeFile.content);toast("File copied.")}catch{toast("Clipboard unavailable.")}};
 $("downloadFileBtn").onclick=()=>{if(!state.activeFile||!state.repo||!state.context)return;const a=document.createElement("a");a.href="/api/download?action=file&repo="+encodeURIComponent(state.repo)+"&path="+encodeURIComponent(state.activeFile.path)+"&branch="+encodeURIComponent(state.context.branch);document.body.appendChild(a);a.click();a.remove()};
@@ -599,6 +602,92 @@ $("logoutBtn").onclick=async()=>{
 
 setAuthMode("signup");
 handleAuthRedirect().finally(()=>{if(!state.recovery)refreshSession().catch(error=>toast(error.message));});
+
+let supabaseBrowser=null;
+
+async function ensureSupabaseBrowser(){
+  if(supabaseBrowser)return supabaseBrowser;
+  const res=await fetch("/api/config");
+  const config=await res.json();
+  if(!config.supabaseUrl||!config.supabaseAnonKey)throw new Error("Supabase public configuration is missing.");
+  if(!window.supabase?.createClient)throw new Error("Supabase client failed to load.");
+  supabaseBrowser=window.supabase.createClient(config.supabaseUrl,config.supabaseAnonKey,{
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+  });
+  supabaseBrowser.auth.onAuthStateChange(async(event,session)=>{
+    if(session?.provider_token){
+      try{
+        const response=await fetch("/api/github-link?action=store",{
+          method:"POST",credentials:"same-origin",
+          headers:{"content-type":"application/json"},
+          body:JSON.stringify({providerToken:session.provider_token})
+        });
+        const data=await response.json();
+        if(response.ok){
+          state.github=data.github||null;
+          if(typeof loadGithubStatus==="function")await loadGithubStatus();
+          toast("GitHub linked.");
+        }else if(data.error){
+          console.warn(data.error);
+        }
+      }catch(error){console.warn(error)}
+    }
+  });
+  return supabaseBrowser;
+}
+
+async function syncBrowserSupabase(session){
+  if(!session?.access_token)return;
+  try{
+    const client=await ensureSupabaseBrowser();
+    await client.auth.setSession({
+      access_token:session.access_token,
+      refresh_token:session.refresh_token||""
+    });
+  }catch(error){console.warn(error)}
+}
+
+async function linkGithub(){
+  if(!state.user){
+    openOverlay("authGate");
+    setAuthMode("signup");
+    return;
+  }
+  try{
+    const client=await ensureSupabaseBrowser();
+    const {error}=await client.auth.linkIdentity({
+      provider:"github",
+      options:{
+        scopes:"repo workflow",
+        redirectTo:location.origin+location.pathname
+      }
+    });
+    if(error)throw error;
+  }catch(error){
+    toast(error.message||"GitHub linking is unavailable.");
+  }
+}
+
+async function loadOpenRouterModels(){
+  try{
+    const res=await fetch("/api/models");
+    const data=await res.json();
+    const models=data.models||[];
+    const select=$("modelSelect");
+    if(!select||!models.length)return;
+    select.innerHTML='<option value="">Auto routing</option>'+
+      models.slice(0,25).map(model=>'<option value="'+escapeHtml(model.id)+'">'+escapeHtml(model.name||model.id)+'</option>').join("");
+    select.onchange=()=>{
+      const value=select.value;
+      if(value)toast("Model selected: "+value);
+    };
+  }catch{}
+}
+
+window.addEventListener("load",()=>{
+  loadOpenRouterModels();
+  ensureSupabaseBrowser().catch(()=>{});
+});
 </script>
 </body>
 </html>
