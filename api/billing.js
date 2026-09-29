@@ -79,7 +79,7 @@ export default async function handler(request) {
         field("line_items[0][quantity]", "1"),
         field("success_url", origin + "/?checkout=success&session_id={CHECKOUT_SESSION_ID}"),
         field("cancel_url", origin + "/?checkout=cancelled"),
-        field("client_reference_id", session.login),
+        field("client_reference_id", session.sub),
         field("customer_creation", "always"),
         field("subscription_data[metadata][plan]", planId),
         field("subscription_data[metadata][user_id]", session.sub),
