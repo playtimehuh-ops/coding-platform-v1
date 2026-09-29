@@ -1,106 +1,132 @@
 # Codebase — coding-platform-v1
 
-A coding-only AI workspace built around GitHub repositories.
+A coding-only AI workspace for working directly against GitHub repositories.
 
-## Product
+## What is functional
 
-Codebase is designed around a simple loop:
-
-1. Sign in with GitHub.
-2. Pick a repository.
-3. Ask the coding agent for a change.
-4. The server reads repository context.
-5. The AI returns a structured proposal with complete file replacements.
-6. The UI renders the proposed diff.
-7. You explicitly Apply the change.
-8. GitHub receives the commit.
-
-The browser never receives the GitHub OAuth client secret or AI provider key.
+- GitHub OAuth sign-in with protected sessions
+- Repository discovery for the signed-in account
+- Repository file indexing and context collection
+- AI coding proposals with structured file changes
+- Visual patch previews
+- Approved changes applied to a new branch
+- Pull request creation for every approved AI change
+- Persistent plan, subscription, and monthly usage data through Supabase
+- Stripe subscription checkout and webhook synchronization
+- Automated JavaScript syntax checks through GitHub Actions
 
 ## Architecture
 
-```
 Browser
-  ├─ GitHub OAuth session
-  ├─ Repository explorer
-  ├─ Code viewer
-  └─ Coding agent UI
-          │
-          ▼
-      Vercel Functions
-      ├─ /api/auth      GitHub OAuth + signed/encrypted session
-      ├─ /api/github    user-scoped GitHub read/write operations
-      ├─ /api/chat      repository-aware AI coding agent
-      ├─ /api/billing   Stripe Checkout session creation
-      └─ /api/health    deployment health check
-          │
-          ├──────────────► GitHub API
-          ├──────────────► OpenAI Responses API
-          └──────────────► Stripe Checkout
-```
+  -> GitHub sign-in
+  -> Repository explorer
+  -> Code viewer
+  -> Coding agent
+  -> Vercel Functions
+     -> GitHub API
+     -> OpenAI Responses API
+     -> Supabase REST API
+     -> Stripe API
 
-OpenAI's current platform documentation shows the Responses API as the server-side text-generation interface, and its model catalog lists GPT-5.3-Codex as a specialized coding model. citeturn931081search0turn740558search1
+GitHub documents the repository Contents API for creating and updating files, with OAuth/workflow permissions relevant to repository writes. The app uses a branch + Pull Request write path so approved AI changes remain reviewable. citeturn582966search0turn582966search2
 
-Stripe Checkout supports server-created subscription Sessions using `mode=subscription` and a recurring Price. citeturn935575search0turn935575search2
+## Environment variables
 
-## Vercel environment variables
+Configure these in Vercel Project Settings -> Environment Variables.
 
-Copy `.env.example` into your own local environment or configure the same values in your Vercel project.
+GitHub:
+- GITHUB_CLIENT_ID
+- GITHUB_CLIENT_SECRET
+- AUTH_SECRET
 
-Required for GitHub sign-in:
-- `GITHUB_CLIENT_ID`
-- `GITHUB_CLIENT_SECRET`
-- `AUTH_SECRET`
+AI:
+- OPENAI_API_KEY
+- OPENAI_MODEL
+- optionally OPENAI_BASE_URL
 
-Required for the coding agent:
-- `OPENAI_API_KEY`
+Persistence:
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
 
-Optional:
-- `OPENAI_MODEL` (defaults to `gpt-5.3-codex`)
-- `OPENAI_BASE_URL` (useful for an OpenAI-compatible provider)
-- `STRIPE_SECRET_KEY`
-- `STRIPE_PRICE_BUILDER`
-- `STRIPE_PRICE_TEAM`
+Billing:
+- STRIPE_SECRET_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_PRICE_BUILDER
+- STRIPE_PRICE_TEAM
 
-Never put provider secrets in `index.html` or another browser-delivered file.
+Never place secrets in index.html, browser JavaScript, or GitHub commits.
 
-## GitHub OAuth callback
+## GitHub OAuth application
 
-Create a GitHub OAuth app and set its callback URL to:
+Create a GitHub OAuth App and use this callback URL:
 
-`https://YOUR-DOMAIN/api/auth?action=callback`
+https://YOUR-DOMAIN/api/auth?action=callback
 
-The OAuth flow requests repository access plus basic user identity so the signed-in account can work with its repositories.
+The application requests:
+repo workflow read:user user:email
 
-## Billing
+The workflow scope is needed if the OAuth token is later used to modify files under .github/workflows. citeturn582966search0
 
-The repository contains a server-side Checkout creator and plan configuration.
+## Supabase setup
 
-The current plans are intentionally configuration-driven:
-- Free — 20 agent runs/month
-- Builder — 500 agent runs/month
-- Team — 2,000 agent runs/month
+Run supabase/schema.sql in the Supabase SQL editor, then set the two Supabase environment variables.
 
-The next persistence layer should store Stripe customer/subscription IDs and usage counters in a real database. The UI and checkout endpoint are already separated so that database can be added without replacing the workspace.
+The server uses the Supabase REST API with the service role key. The browser does not talk directly to Supabase.
 
-## Security model
+## Stripe setup
 
-- GitHub access tokens are encrypted before being stored in the HTTP-only signed session cookie.
-- Sessions are signed with HMAC and expire after seven days.
-- OAuth state is checked before exchanging the authorization code.
-- The AI can propose changes, but the write operation is a separate explicit Apply request.
-- Repository files are treated as untrusted input to the AI.
-- File paths are validated before GitHub writes.
-- Provider secrets are server-only environment variables.
+Create recurring Prices for Builder and Team and put their IDs in:
+- STRIPE_PRICE_BUILDER
+- STRIPE_PRICE_TEAM
 
-## Roadmap
+Set the Stripe webhook endpoint to:
 
-- Streaming model output
-- Larger, smarter repository indexing
-- Branch-first changes and pull requests
-- Test execution in an isolated runner
-- Persistent usage accounting
-- Stripe webhook + subscription state
-- Multiple model/provider adapters
-- Team workspaces and permissions
-- Background agent tasks
+https://YOUR-DOMAIN/api/stripe-webhook
+
+Subscribe it to:
+- checkout.session.completed
+- checkout.session.async_payment_succeeded
+- customer.subscription.created
+- customer.subscription.updated
+- customer.subscription.deleted
+
+Put the webhook secret into STRIPE_WEBHOOK_SECRET.
+
+## Plans
+
+The server-side limits are configured in config/plans.js:
+
+| Plan | Price | Agent runs/month | Context files |
+|---|---:|---:|---:|
+| Free | $0 | 20 | 12 |
+| Builder | $12 | 500 | 40 |
+| Team | $29 | 2,000 | 80 |
+
+## Security behavior
+
+- OAuth state is validated before exchanging authorization codes.
+- GitHub tokens are encrypted and stored inside signed HTTP-only sessions.
+- Repository files are treated as untrusted input to the coding model.
+- AI changes are proposals until the user presses Apply.
+- Apply creates a separate branch and Pull Request instead of silently changing main.
+- File paths are validated before writes.
+- Provider credentials are server-only.
+- Usage is checked before model execution when persistence is configured.
+
+## Local development
+
+Use a Node-compatible Vercel development environment:
+
+npm run dev
+
+Run syntax checks:
+
+npm test
+
+CI runs those checks on pushes to main and pull requests.
+
+## Deployment note
+
+This is intentionally a server-backed application. A static GitHub Pages deployment of index.html alone cannot provide OAuth token exchange, AI provider calls, Stripe webhooks, or protected GitHub writes.
+
+Deploy the repository as a Vercel project (or another Node-compatible serverless host) and configure the environment variables there.
