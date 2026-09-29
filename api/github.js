@@ -194,11 +194,11 @@ export default async function handler(request) {
     const action = body.action || "context";
     const repo = String(body.repo || "").trim();
 
-    if (!validRepo(repo)) return json({ error: "Invalid repository name." }, 400);
-
     if (action === "repos") {
       return json({ repositories: await listRepositories(accessToken) });
     }
+
+    if (!validRepo(repo)) return json({ error: "Invalid repository name." }, 400);
 
     if (action === "context") {
       const maxFiles = Number(body.maxFiles || 40);
