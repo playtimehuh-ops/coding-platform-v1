@@ -12,7 +12,7 @@ export default async function handler(request) {
   if (request.method !== "GET") return json({ error: "GET required." }, 405);
 
   if (!process.env.OPENROUTER_API_KEY) {
-    return json({ models: ["openrouter/free"], source: "fallback" });
+    return json({ models: [{ id: "openrouter/auto", name: "Auto routing" }], source: "fallback" });
   }
 
   try {
@@ -50,6 +50,6 @@ export default async function handler(request) {
 
     return json({ models, source: "openrouter" });
   } catch (error) {
-    return json({ models: ["openrouter/free"], source: "fallback", error: error.message });
+    return json({ models: [{ id: "openrouter/auto", name: "Auto routing" }], source: "fallback", error: error.message });
   }
 }
