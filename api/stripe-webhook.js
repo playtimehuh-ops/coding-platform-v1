@@ -59,9 +59,9 @@ export default async function handler(request) {
         ? object.subscription
         : object.subscription?.id;
 
-      if (metadata.github_id && subscriptionId) {
+      if (metadata.user_id && subscriptionId) {
         await saveSubscription({
-          github_id: String(metadata.github_id),
+          user_id: String(metadata.user_id),
           stripe_customer_id: typeof object.customer === "string" ? object.customer : null,
           stripe_subscription_id: subscriptionId,
           plan: metadata.plan || "builder",
@@ -77,7 +77,7 @@ export default async function handler(request) {
       event.type === "customer.subscription.deleted"
     ) {
       const subscription = object;
-      if (subscription.metadata?.github_id) {
+      if (subscription.metadata?.user_id) {
         let plan = subscription.metadata.plan || "free";
         let status = subscription.status || "inactive";
         if (event.type === "customer.subscription.deleted") {
@@ -86,7 +86,7 @@ export default async function handler(request) {
         }
 
         await saveSubscription({
-          github_id: String(subscription.metadata.github_id),
+          user_id: String(subscription.metadata.user_id),
           stripe_customer_id: typeof subscription.customer === "string" ? subscription.customer : null,
           stripe_subscription_id: subscription.id || null,
           plan,
