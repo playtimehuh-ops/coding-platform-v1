@@ -114,249 +114,452 @@ button:disabled{cursor:not-allowed;opacity:.48}
 <div class="overlay" id="accountOverlay"><div class="modal"><div class="modal-head"><div><div class="modal-title">Account</div><div class="modal-sub" id="accountSub">Your Codebase account</div></div><button class="icon-btn" id="closeAccount">Close</button></div><div class="modal-body"><div style="display:grid;grid-template-columns:1fr 1fr;gap:9px"><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Profile</div><form id="profileForm" style="display:grid;gap:7px;margin-top:8px"><input id="profileName" style="height:34px;border:1px solid var(--line);border-radius:6px;background:#0b0f13;padding:0 8px;font-size:9px" maxlength="80"><button class="small-btn">Save profile</button></form></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Password</div><form id="passwordForm" style="display:grid;gap:7px;margin-top:8px"><input id="newPassword" type="password" minlength="8" style="height:34px;border:1px solid var(--line);border-radius:6px;background:#0b0f13;padding:0 8px;font-size:9px" placeholder="New password"><button class="small-btn">Change password</button></form></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">GitHub</div><p id="githubAccountText" style="color:#7f8993;font-size:8px;line-height:1.5">Not linked.</p><button class="small-btn" id="manageGithub" style="width:100%;margin-top:6px">Link GitHub</button></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Billing</div><p id="billingText" style="color:#7f8993;font-size:8px;line-height:1.5">No subscription.</p><button class="small-btn" id="manageBilling" style="width:100%;margin-top:6px">Manage billing</button></div></div><button class="small-btn" id="logoutBtn" style="margin-top:10px;width:100%">Log out</button></div></div></div><div class="toast" id="toast"></div>
 
 <script>
-const state = {
-  user:null, repos:[], repo:"", context:null, activeFile:null, used:0, plan:"free"
-};
+const state={user:null,plan:"free",used:0,repo:"",repos:[],context:null,activeFile:null,github:null};
 
-const $ = id => document.getElementById(id);
-const toast = message => {
-  $("toast").textContent=message; $("toast").classList.add("show");
-  clearTimeout(window.__toast); window.__toast=setTimeout(()=>$("toast").classList.remove("show"),2200);
-};
-
-function setStatus(label, online=true){
-  $("status").innerHTML='<i class="status-dot"></i><span>'+label+'</span>';
-  $("status").style.borderColor=online?"#29331f":"#2b3036";
-}
-
-function log(message, tone=""){
-  const line=document.createElement("div");
-  line.innerHTML=tone==="ok"?'<span class="term-ok">✓</span> '+message:tone==="warn"?'<span class="term-warn">•</span> '+message:message;
-  $("terminal").appendChild(line); $("terminal").scrollTop=$("terminal").scrollHeight;
-}
+const $=id=>document.getElementById(id);
 
 function escapeHtml(value){
-  return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",""":"&quot;","'":"&#39;"}[ch]));
+  return String(value??"").replace(/[&<>"']/g,ch=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#39;"
+  }[ch]));
 }
 
-function simpleDiff(before, after){
-  const a=String(before||"").split("\n"), b=String(after||"").split("\n");
-  const rows=["@@ file change @@"];
-  const max=Math.max(a.length,b.length);
-  for(let i=0;i<max;i++){
-    if(a[i]===b[i]) rows.push("  "+(a[i]??""));
-    else {
-      if(i<a.length) rows.push("- "+a[i]);
-      if(i<b.length) rows.push("+ "+b[i]);
-    }
-  }
-  return rows.join("\n");
+function toast(message){
+  const el=$("toast");
+  el.textContent=message;
+  el.classList.add("show");
+  clearTimeout(window.__toast);
+  window.__toast=setTimeout(()=>el.classList.remove("show"),2200);
 }
 
-function renderCode(){
-  const file=state.activeFile;
-  if(!file){$("source").textContent="// Select a source file to inspect it.";$("gutter").textContent="1";return}
-  $("source").textContent=file.content;
-  $("gutter").textContent=file.content.split("\n").map((_,i)=>i+1).join("\n");
-  $("tabs").innerHTML='<div class="tab active">'+escapeHtml(file.path)+'</div>';
+function log(message,tone){
+  const el=document.createElement("div");
+  el.innerHTML=(tone==="ok"?'<span class="term-ok">✓</span> ':tone==="warn"?'<span class="term-warn">•</span> ':'')+escapeHtml(message);
+  $("terminal").appendChild(el);
+  $("terminal").scrollTop=$("terminal").scrollHeight;
 }
 
-function renderTree(){
-  if(!state.context){$("tree").innerHTML='<div class="empty">Select a repository to inspect its files.</div>';return}
-  const files=state.context.files;
-  $("tree").innerHTML=files.map(file =>
-    '<button class="tree-row '+(state.activeFile?.path===file.path?"active":"")+'" data-path="'+escapeHtml(file.path)+'">'+
-    '<span class="tree-icon">'+(file.path.endsWith(".json")?"{}":file.path.match(/\.([^.]+)$/)?.[1]?.toUpperCase().slice(0,2)||"F")+'</span>'+
-    '<span class="tree-name">'+escapeHtml(file.path)+'</span></button>'
-  ).join("");
-  document.querySelectorAll(".tree-row").forEach(row=>row.onclick=()=>{
-    state.activeFile=state.context.files.find(file=>file.path===row.dataset.path)||null;
-    renderTree(); renderCode();
+function openOverlay(id){$(id).style.display="flex"}
+function closeOverlay(id){$(id).style.display="none"}
+
+async function authRequest(action,payload){
+  const res=await fetch("/api/auth?action="+encodeURIComponent(action),{
+    method:"POST",credentials:"same-origin",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify(payload||{})
   });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(data.error||"Authentication failed.");
+  return data;
+}
+
+function setAuthMode(mode){
+  const signup=mode==="signup";
+  $("authForm").dataset.mode=mode;
+  $("signupMode").classList.toggle("active",signup);
+  $("loginMode").classList.toggle("active",!signup);
+  $("nameWrap").style.display=signup?"block":"none";
+  $("authPassword").setAttribute("autocomplete",signup?"new-password":"current-password");
+  $("authTitle").textContent=signup?"Build with AI.":"Welcome back.";
+  $("authSubtitle").textContent=signup?
+    "Create your Codebase account. GitHub is an optional repository integration.":
+    "Log in to continue your coding workspace.";
+  $("authSubmit").textContent=signup?"Create account":"Log in";
+  $("forgotBtn").style.visibility=signup?"hidden":"visible";
+  $("authNote").textContent="";
+  $("authNote").className="auth-note";
+}
+
+async function submitAuth(event){
+  event.preventDefault();
+  const mode=$("authForm").dataset.mode||"signup";
+  const note=$("authNote"),button=$("authSubmit");
+  button.disabled=true;
+  note.textContent="Working…";
+  note.className="auth-note";
+  try{
+    const payload={email:$("authEmail").value.trim(),password:$("authPassword").value};
+    if(mode==="signup")payload.name=$("authName").value.trim();
+    const data=await authRequest(mode,payload);
+    if(data.requiresConfirmation){
+      note.textContent=data.message||"Check your email to verify your account.";
+      note.className="auth-note ok";
+      $("authEmail").value=payload.email;
+      setAuthMode("login");
+      return;
+    }
+    await refreshSession();
+    toast("Account ready.");
+  }catch(error){
+    note.textContent=error.message||"Authentication failed.";
+    note.className="auth-note error";
+  }finally{button.disabled=false}
+}
+
+$("authForm").addEventListener("submit",submitAuth);
+$("signupMode").onclick=()=>setAuthMode("signup");
+$("loginMode").onclick=()=>setAuthMode("login");
+$("forgotBtn").onclick=async()=>{
+  const email=$("authEmail").value.trim(),note=$("authNote");
+  if(!email){note.textContent="Enter your email first.";note.className="auth-note error";return}
+  try{
+    const data=await authRequest("forgot",{email});
+    note.textContent=data.message||"Check your email.";
+    note.className="auth-note ok";
+  }catch(error){
+    note.textContent=error.message;
+    note.className="auth-note error";
+  }
+};
+
+async function refreshSession(){
+  const res=await fetch("/api/auth?action=me",{credentials:"same-origin"});
+  const data=await res.json();
+  state.user=data.authenticated?data.user:null;
+
+  if(!state.user){
+    $("authGate").style.display="flex";
+    $("accountBtn").className="top-btn primary";
+    $("accountBtn").textContent="Create account";
+    $("accountBtn").onclick=()=>{setAuthMode("signup");openOverlay("authGate")};
+    $("status").innerHTML='<i></i><span>Signed out</span>';
+    return;
+  }
+
+  $("authGate").style.display="none";
+  $("accountBtn").className="account";
+  $("accountBtn").innerHTML="<span>"+escapeHtml(state.user.name||state.user.email)+"</span>";
+  $("accountBtn").onclick=()=>openOverlay("accountOverlay");
+  $("status").innerHTML='<i></i><span>Signed in</span>';
+  await loadAccount();
+  await loadGithubStatus();
 }
 
 async function loadAccount(){
-  try{
-    const response=await fetch("/api/account",{credentials:"same-origin"});
-    const data=await response.json();
-    if(data.authenticated){
-      state.plan=data.plan||"free";
-      state.used=data.usage?.used||0;
-      updateUsage();
-    }
-  }catch{}
+  const res=await fetch("/api/account",{credentials:"same-origin"});
+  const data=await res.json();
+  if(!data.authenticated)return;
+  state.plan=data.plan||"free";
+  state.used=data.usage?.used||0;
+  updateUsage();
+  if($("profileName"))$("profileName").value=data.user?.name||"";
+  if($("accountSub"))$("accountSub").textContent=(data.user?.email||"")+" · "+state.plan;
+  if($("billingText"))$("billingText").textContent=data.subscription?.status?
+    "Subscription: "+data.subscription.status:
+    "No active subscription.";
 }
 
-async function loadSession(){
-  try{
-    const response=await fetch("/api/auth?action=me",{credentials:"same-origin"});
-    const data=await response.json();
-    state.user=data.authenticated?data.user:null;
-    if(state.user){
-      $("authBtn").className="account";
-      $("authBtn").innerHTML=(state.user.avatar_url?'<img src="'+escapeHtml(state.user.avatar_url)+'" alt="">':"")+"<span>"+escapeHtml(state.user.login)+"</span>";
-      $("authBtn").onclick=()=>{if(confirm("Sign out of Codebase?")) location.href="/api/auth?action=logout";};
-      setStatus("Connected");
-      await loadRepos();
-    }else{
-      $("authBtn").className="top-btn primary";
-      $("authBtn").textContent="Sign in with GitHub";
-      $("authBtn").onclick=()=>location.href="/api/auth?action=login";
-      setStatus("Offline",false);
-    }
-  }catch{
-    setStatus("Offline",false);
+async function loadGithubStatus(){
+  const res=await fetch("/api/github-link?action=status",{credentials:"same-origin"});
+  const data=await res.json();
+  state.github=data.connected?data.github:null;
+
+  if(state.github){
+    $("githubLinkBtn").textContent="Linked · @"+state.github.login;
+    $("githubAccountText").textContent="Connected as @"+state.github.login;
+    $("manageGithub").textContent="Reconnect GitHub";
+    await loadRepos();
+  }else{
+    $("githubLinkBtn").textContent="Link GitHub";
+    $("githubAccountText").textContent="Not linked. Link GitHub to import repositories.";
+    $("manageGithub").textContent="Link GitHub";
+    $("repoSelect").innerHTML='<option value="">Link GitHub to begin</option>';
+    $("repoMeta").textContent="GitHub not linked";
+    $("tree").innerHTML='<div class="empty">Your Codebase account is ready.<br>Link GitHub to load repositories.</div>';
   }
 }
 
 async function loadRepos(){
-  const response=await fetch("/api/github",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"repos"})});
-  const data=await response.json();
-  if(!response.ok) throw new Error(data.error||"Could not load repositories.");
+  const res=await fetch("/api/github",{
+    method:"POST",credentials:"same-origin",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify({action:"repos"})
+  });
+  const data=await res.json();
+  if(!res.ok)throw new Error(data.error||"Could not load repositories.");
   state.repos=data.repositories||[];
-  $("repoSelect").innerHTML=state.repos.length?state.repos.map(repo=>'<option value="'+escapeHtml(repo.full_name)+'">'+escapeHtml(repo.full_name)+(repo.private?" · private":"")+'</option>').join(""):'<option value="">No repositories found</option>';
-  if(state.repos.length){state.repo=state.repos[0].full_name;$("repoSelect").value=state.repo;await loadRepo(state.repo);}
+  $("repoSelect").innerHTML=state.repos.length?
+    state.repos.map(r=>'<option value="'+escapeHtml(r.full_name)+'">'+escapeHtml(r.full_name)+(r.private?" · private":"")+"</option>").join(""):
+    '<option value="">No repositories found</option>';
+  if(state.repos.length){
+    state.repo=state.repos[0].full_name;
+    $("repoSelect").value=state.repo;
+    await loadRepo(state.repo);
+  }
 }
 
 async function loadRepo(repo){
   if(!repo)return;
-  state.repo=repo; state.activeFile=null; state.context=null;
-  $("repoMeta").textContent="Loading repository…"; $("tree").innerHTML='<div class="empty">Reading repository…</div>';
+  state.repo=repo;
+  state.context=null;
+  state.activeFile=null;
+  $("repoMeta").textContent="Reading repository…";
+  $("tree").innerHTML='<div class="empty">Indexing repository…</div>';
   log("Reading "+repo+"…");
-  const response=await fetch("/api/github",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"context",repo})});
-  const data=await response.json();
-  if(!response.ok) throw new Error(data.error||"Could not read repository.");
+  const res=await fetch("/api/github",{
+    method:"POST",credentials:"same-origin",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify({action:"context",repo,maxFiles:40})
+  });
+  const data=await res.json();
+  if(!res.ok)throw new Error(data.error||"Could not read repository.");
   state.context=data;
-  $("repoMeta").textContent=data.branch+" · "+(data.language||"mixed");
-  state.activeFile=data.files.find(file=>file.path==="README.md")||data.files.find(file=>file.path==="package.json")||data.files[0]||null;
-  renderTree(); renderCode();
-  log(data.files.length+" files indexed for the coding agent.","ok");
+  $("repoMeta").textContent=data.branch+" · "+(data.language||"mixed")+" · "+data.files.length+" files";
+  state.activeFile=data.files.find(f=>f.path==="README.md")||data.files.find(f=>f.path==="package.json")||data.files[0]||null;
+  renderTree();
+  renderCode();
+  log(data.files.length+" files loaded · "+(data.context_chars||0)+" context chars","ok");
 }
 
-function addMessage(who, body, className=""){
-  const wrapper=document.createElement("div"); wrapper.className="msg "+className;
-  const avatar=who==="AI"?'<div class="avatar ai">AI</div>':'<div class="avatar you">YOU</div>';
-  wrapper.innerHTML='<div class="msg-head">'+avatar+' '+who+' <span class="msg-time">· now</span></div><div class="msg-body"></div>';
-  wrapper.querySelector(".msg-body").textContent=body;
-  $("chat").appendChild(wrapper); $("chat").scrollTop=$("chat").scrollHeight;
-  return wrapper;
+function renderTree(){
+  if(!state.context)return;
+  $("tree").innerHTML=state.context.files.map(file=>{
+    const ext=(file.path.split(".").pop()||"file").slice(0,2).toUpperCase();
+    return '<button class="tree-row '+(state.activeFile?.path===file.path?"active":"")+'" data-path="'+escapeHtml(file.path)+'"><span class="tree-icon">'+escapeHtml(ext)+"</span><span class="tree-name">"+escapeHtml(file.path)+"</span></button>";
+  }).join("");
+  document.querySelectorAll(".tree-row").forEach(row=>row.onclick=()=>{
+    state.activeFile=state.context.files.find(f=>f.path===row.dataset.path)||null;
+    renderTree();
+    renderCode();
+  });
+}
+
+function renderCode(){
+  if(!state.activeFile){
+    $("source").textContent="// Select a file to inspect it.";
+    $("gutter").textContent="1";
+    $("tabs").innerHTML="";
+    return;
+  }
+  $("source").textContent=state.activeFile.content;
+  $("gutter").textContent=state.activeFile.content.split("\n").map((_,i)=>i+1).join("\n");
+  $("tabs").innerHTML='<div class="tab active">'+escapeHtml(state.activeFile.path)+"</div>";
+}
+
+function addMessage(who,text){
+  const el=document.createElement("div");
+  el.className="msg";
+  el.innerHTML='<div class="msg-head"><div class="avatar '+(who==="AI"?"ai":"you")+'">'+who+'</div>'+who+'<span class="msg-time">· now</span></div><div class="msg-body"></div>';
+  el.querySelector(".msg-body").textContent=text;
+  $("chat").appendChild(el);
+  $("chat").scrollTop=$("chat").scrollHeight;
+  return el;
+}
+
+function simpleDiff(before,after){
+  const a=String(before||"").split("\n"),b=String(after||"").split("\n"),rows=["@@ file change @@"];
+  const max=Math.max(a.length,b.length);
+  for(let i=0;i<max;i++){
+    if(a[i]===b[i])rows.push("  "+(a[i]??""));
+    else{if(i<a.length)rows.push("- "+a[i]);if(i<b.length)rows.push("+ "+b[i])}
+  }
+  return rows.join("\n");
+}
+
+function downloadText(filename,text,mime){
+  const url=URL.createObjectURL(new Blob([text],{type:mime||"text/plain"}));
+  const a=document.createElement("a");
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function downloadPatch(changes){
+  const patch=(changes||[]).map(change=>{
+    const before=state.context?.files.find(f=>f.path===change.path)?.content||"";
+    return "diff --git a/"+change.path+" b/"+change.path+"\n"+simpleDiff(before,change.content);
+  }).join("\n\n");
+  downloadText("codebase-ai.patch",patch,"text/x-diff");
 }
 
 function addAgentResult(data){
-  const wrapper=document.createElement("div"); wrapper.className="msg";
-  let html='<div class="msg-head"><div class="avatar ai">AI</div> Code Agent <span class="msg-time">· now</span></div>';
-  html+='<div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Task analyzed.")+'</strong></p>';
-  if(data.rationale) html+='<p>'+escapeHtml(data.rationale)+'</p>';
-  if(Array.isArray(data.tests)&&data.tests.length) html+='<div class="meta-line">Tests to run</div>'+data.tests.map(test=>'<p>• '+escapeHtml(test)+'</p>').join("");
-  if(Array.isArray(data.changes)&&data.changes.length){
-    data.changes.forEach((change,i)=>{
-      const original=state.context?.files.find(file=>file.path===change.path)?.content||"";
-      html+='<div class="change" data-index="'+i+'"><div class="change-head"><span>'+escapeHtml(change.path)+'</span><span>'+Math.max(0,simpleDiff(original,change.content).split("\n").filter(x=>x.startsWith("+ ")).length-1)+' additions</span></div>';
-      html+='<pre class="diff">'+escapeHtml(simpleDiff(original,change.content))+'</pre>';
-      html+='<div style="padding:8px;display:flex;justify-content:flex-end"><div class="change-actions"><button class="mini apply one">Apply</button></div></div></div>';
-    });
-    html+='<div style="display:flex;justify-content:flex-end;margin-top:9px"><button class="mini apply all">Apply all changes</button></div>';
-  } else {
-    html+='<div class="meta-line">No repository files need changing.</div>';
+  const el=document.createElement("div");
+  el.className="msg";
+  let html='<div class="msg-head"><div class="avatar ai">AI</div>Code Agent<span class="msg-time">· now</span></div><div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Task analyzed.")+"</strong></p>";
+  if(data.rationale)html+="<p>"+escapeHtml(data.rationale)+"</p>";
+  if(data.tests?.length)html+='<div class="meta-line">Suggested checks</div>'+data.tests.map(t=>"<p>• "+escapeHtml(t)+"</p>").join("");
+  for(let i=0;i<(data.changes||[]).length;i++){
+    const change=data.changes[i];
+    const before=state.context?.files.find(f=>f.path===change.path)?.content||"";
+    html+='<div class="change"><div class="change-head"><span>'+escapeHtml(change.path)+'</span><span>proposed</span></div><pre class="diff">'+escapeHtml(simpleDiff(before,change.content))+'</pre><div class="actions"><button class="mini apply one">Apply</button></div></div>';
   }
-  html+='</div>';
-  wrapper.innerHTML=html; $("chat").appendChild(wrapper); $("chat").scrollTop=$("chat").scrollHeight;
+  if(data.changes?.length)html+='<div class="actions"><button class="mini download-patch">Download patch</button><button class="mini apply all">Apply all</button></div>';
+  else html+='<div class="meta-line">No file changes proposed.</div>';
+  html+="</div>";
+  el.innerHTML=html;
+  $("chat").appendChild(el);
+  $("chat").scrollTop=$("chat").scrollHeight;
 
-  const changes=data.changes||[];
-  wrapper.querySelectorAll(".one").forEach((button,index)=>button.onclick=()=>applyChanges([changes[index]]));
-  const all=wrapper.querySelector(".all"); if(all) all.onclick=()=>applyChanges(changes);
-}
-
-async function applyChanges(changes){
-  if(!state.user){toast("Sign in with GitHub first.");return}
-  if(!changes.length)return;
-  addMessage("AI","Applying the approved patch to "+state.repo+"…");
-  log("Applying "+changes.length+" file change"+(changes.length===1?"":"s")+"…");
-  const response=await fetch("/api/github",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
-    action:"apply",repo:state.repo,branch:state.context.branch,message:"feat: apply AI coding changes",changes
-  })});
-  const data=await response.json();
-  if(!response.ok){toast(data.error||"Apply failed.");log(data.error||"Apply failed.","warn");return}
-  toast("Pull request created.");
-  log("Changes committed to branch "+data.branch+".","ok");
-  if(data.pull_request?.url){
-    addMessage("AI","Pull request #"+data.pull_request.number+" is ready for review.");
-    const link=document.createElement("a");
-    link.href=data.pull_request.url; link.target="_blank"; link.rel="noopener";
-    link.textContent="Open pull request";
-    link.style.cssText="display:inline-block;margin:7px 0 0 28px;color:#c8ff4a;font-size:10px";
-    $("chat").lastElementChild.querySelector(".msg-body")?.appendChild(link);
-  }
-  await loadRepo(state.repo);
-  await loadAccount();
+  el.querySelectorAll(".one").forEach((button,i)=>button.onclick=()=>applyChanges([data.changes[i]]));
+  el.querySelector(".all")?.addEventListener("click",()=>applyChanges(data.changes));
+  el.querySelector(".download-patch")?.addEventListener("click",()=>downloadPatch(data.changes));
 }
 
 async function send(){
-  const input=$("prompt"), prompt=input.value.trim();
+  const prompt=$("prompt").value.trim();
   if(!prompt)return;
-  if(!state.user){toast("Sign in with GitHub first.");return}
-  if(!state.repo){toast("Choose a repository first.");return}
-  input.value="";
+  if(!state.user){openOverlay("authGate");return}
+  if(!state.repo){toast("Link GitHub and choose a repository.");return}
+  $("prompt").value="";
   addMessage("YOU",prompt);
   const thinking=addMessage("AI","Inspecting the repository and planning the change…");
-  log("Agent task: "+prompt);
   $("sendBtn").disabled=true;
+  log("Agent task: "+prompt);
   try{
-    const response=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt,repo:state.repo})});
-    const data=await response.json();
+    const res=await fetch("/api/chat",{
+      method:"POST",credentials:"same-origin",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({prompt,repo:state.repo})
+    });
+    const data=await res.json();
     thinking.remove();
-    if(!response.ok){addMessage("AI",data.error||"The coding agent failed.");log(data.error||"Agent failed.","warn");return}
-    state.used=data.usage?.used ?? (state.used+1);
+    if(!res.ok)throw new Error(data.error||"The coding agent failed.");
+    state.used=data.usage?.used??state.used;
     state.plan=data.plan||state.plan;
     updateUsage();
     addAgentResult(data);
-    log("Proposal ready; waiting for approval.","ok");
+    log("Proposal ready — waiting for approval","ok");
   }catch(error){
-    thinking.remove();addMessage("AI",error.message||"Network error.");log(error.message||"Network error","warn");
+    thinking.remove();
+    addMessage("AI",error.message||"The coding agent failed.");
+    log(error.message||"Agent failed","warn");
   }finally{$("sendBtn").disabled=false}
 }
 
+async function applyChanges(changes){
+  if(!changes?.length||!state.repo||!state.context)return;
+  addMessage("AI","Creating a review branch and Pull Request…");
+  log("Creating review branch…");
+  try{
+    const res=await fetch("/api/github",{
+      method:"POST",credentials:"same-origin",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({
+        action:"apply",repo:state.repo,base:state.context.branch,
+        changes,title:"Codebase AI changes",
+        message:"feat: apply AI coding changes",
+        description:"Changes proposed and explicitly approved in Codebase."
+      })
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"Could not apply changes.");
+    log("Branch "+data.branch+" created","ok");
+    if(data.pull_request?.url){
+      const el=addMessage("AI","Pull request #"+data.pull_request.number+" is ready for review.");
+      const link=document.createElement("a");
+      link.href=data.pull_request.url;link.target="_blank";link.rel="noopener";
+      link.textContent="Open pull request";
+      link.style.cssText="display:block;margin-top:6px;color:#c8ff4a;font-size:9px";
+      el.querySelector(".msg-body").appendChild(link);
+    }
+    toast("Pull request created.");
+    await loadRepo(state.repo);
+  }catch(error){
+    toast(error.message);
+    log(error.message,"warn");
+  }
+}
+
+async function runReview(){
+  if(!state.repo){toast("Choose a repository first.");return}
+  $("reviewBtn").disabled=true;
+  addMessage("AI","Reviewing the repository for concrete bugs and risks…");
+  try{
+    const res=await fetch("/api/review",{
+      method:"POST",credentials:"same-origin",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({repo:state.repo})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"Code review failed.");
+    state.used=data.usage?.used??state.used;
+    state.plan=data.plan||state.plan;
+    updateUsage();
+    const el=document.createElement("div");el.className="msg";
+    let html='<div class="msg-head"><div class="avatar ai">AI</div>Code Review<span class="msg-time">· now</span></div><div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Review complete.")+"</strong></p>";
+    if(data.findings?.length){
+      html+=data.findings.map(f=>'<div class="review-item"><div class="review-sev '+escapeHtml(f.severity)+'">'+escapeHtml(f.severity)+'</div><div class="review-title">'+escapeHtml(f.title)+'</div><div class="review-detail">'+escapeHtml(f.detail)+'</div><div class="review-path">'+escapeHtml(f.path)+'</div></div>').join("");
+    }else html+='<div class="meta-line">No concrete findings returned.</div>';
+    html+="</div>";el.innerHTML=html;$("chat").appendChild(el);$("chat").scrollTop=$("chat").scrollHeight;log("Review complete","ok");
+  }catch(error){toast(error.message);log(error.message,"warn")}
+  finally{$("reviewBtn").disabled=false}
+}
+
 async function loadPlans(){
-  const response=await fetch("/api/billing",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"catalog"})});
-  const data=await response.json();
-  const plans=data.plans||{};
-  $("plans").innerHTML=Object.values(plans).map(plan=>{
-    const paid=plan.price>0;
+  const res=await fetch("/api/billing",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"catalog"})});
+  const data=await res.json();
+  $("plans").innerHTML=Object.values(data.plans||{}).map(plan=>{
     const featured=plan.id==="builder";
-    return '<div class="plan '+(featured?"featured":"")+'"><h3>'+escapeHtml(plan.name)+'</h3><div class="price">$'+plan.price+'<small>/mo</small></div><p>'+plan.runs.toLocaleString()+' agent runs per month.</p><ul><li>'+plan.contextFiles+' files in context</li><li>'+plan.privateRepos+' repository'+(plan.privateRepos===1?"":"ies")+' available</li><li>'+plan.models.join(", ")+' routing</li></ul><button class="'+(featured?"primary":"")+'" data-plan="'+plan.id+'">'+(paid?"Choose "+escapeHtml(plan.name):"Current plan")+'</button></div>';
+    return '<div class="plan '+(featured?"featured":"")+'"><h3>'+escapeHtml(plan.name)+'</h3><div class="price">$'+plan.price+'<small>/mo</small></div><p>'+plan.runs.toLocaleString()+" agent runs per month.</p><ul><li>"+plan.contextFiles+" files in context</li><li>"+plan.privateRepos+" repositories</li><li>"+escapeHtml(plan.models.join(", "))+" routing</li></ul><button class=""+(featured?"primary ":"")+'plan-choice" data-plan="'+escapeHtml(plan.id)+'">'+(plan.price?"Choose "+escapeHtml(plan.name):"Current plan")+"</button></div>";
   }).join("");
-  $("plans").querySelectorAll("button[data-plan]").forEach(button=>button.onclick=async()=>{
+  $("plans").querySelectorAll(".plan-choice").forEach(button=>button.onclick=async()=>{
     const plan=button.dataset.plan;
-    if(plan==="free"){toast("Free plan selected.");return}
-    if(!state.user){toast("Sign in before upgrading.");return}
+    if(plan==="free")return;
+    if(!state.user){closeOverlay("plansOverlay");openOverlay("authGate");return}
     button.disabled=true;
     try{
-      const response=await fetch("/api/billing",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"checkout",plan})});
-      const data=await response.json();
-      if(!response.ok)throw new Error(data.error||"Checkout is not configured.");
+      const res=await fetch("/api/billing",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({action:"checkout",plan})});
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error||"Checkout is not configured.");
       location.href=data.url;
     }catch(error){button.disabled=false;toast(error.message)}
   });
 }
 
-function updateUsage(){
-  const limit=state.plan==="builder"?500:state.plan==="team"?2000:20;
-  $("usageText").textContent=state.used+" / "+limit;
-  $("usageBar").style.width=Math.min(100,(state.used/limit)*100)+"%";
-}
-
 $("repoSelect").onchange=()=>loadRepo($("repoSelect").value).catch(e=>toast(e.message));
+$("githubLinkBtn").onclick=()=>state.user?location.href="/api/github-link?action=login":openOverlay("authGate");
+$("manageGithub").onclick=()=>state.user?location.href="/api/github-link?action=login":openOverlay("authGate");
+$("openRepoBtn").onclick=()=>{const r=state.repos.find(x=>x.full_name===state.repo);if(r?.html_url)window.open(r.html_url,"_blank","noopener")};
+$("copyFileBtn").onclick=async()=>{if(!state.activeFile)return;try{await navigator.clipboard.writeText(state.activeFile.content);toast("File copied.")}catch{toast("Clipboard unavailable.")}};
+$("downloadFileBtn").onclick=()=>{if(!state.activeFile||!state.repo||!state.context)return;const a=document.createElement("a");a.href="/api/download?action=file&repo="+encodeURIComponent(state.repo)+"&path="+encodeURIComponent(state.activeFile.path)+"&branch="+encodeURIComponent(state.context.branch);document.body.appendChild(a);a.click();a.remove()};
+$("downloadRepoBtn").onclick=()=>{if(!state.repo||!state.context)return;const a=document.createElement("a");a.href="/api/download?action=repo&repo="+encodeURIComponent(state.repo)+"&branch="+encodeURIComponent(state.context.branch);document.body.appendChild(a);a.click();a.remove()};
 $("sendBtn").onclick=send;
-$("prompt").addEventListener("keydown",event=>{if((event.ctrlKey||event.metaKey)&&event.key==="Enter")send()});
-document.querySelectorAll(".command").forEach(button=>button.onclick=()=>{$("prompt").value=button.textContent+" ";$("prompt").focus()});
-$("plansBtn").onclick=()=>{$("plansOverlay").style.display="flex";loadPlans().catch(e=>toast(e.message))};
-$("closePlans").onclick=()=>$("plansOverlay").style.display="none";
-$("plansOverlay").onclick=e=>{if(e.target.id==="plansOverlay")e.currentTarget.style.display="none"};
-$("modelSelect").onchange=()=>toast("Model selection is controlled by your plan and server configuration.");
+$("prompt").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")send()});
+document.querySelectorAll(".shortcut").forEach(b=>b.onclick=()=>{$("prompt").value=b.textContent+" ";$("prompt").focus()});
+$("reviewBtn").onclick=runReview;
+$("plansBtn").onclick=()=>{openOverlay("plansOverlay");loadPlans().catch(e=>toast(e.message))};
+$("closePlans").onclick=()=>closeOverlay("plansOverlay");
+$("closeAccount").onclick=()=>closeOverlay("accountOverlay");
+$("plansOverlay").onclick=e=>{if(e.target.id==="plansOverlay")closeOverlay("plansOverlay")};
+$("accountOverlay").onclick=e=>{if(e.target.id==="accountOverlay")closeOverlay("accountOverlay")};
 
-loadSession().catch(error=>toast(error.message));
-loadAccount();
-updateUsage();
+$("profileForm").onsubmit=async e=>{
+  e.preventDefault();
+  try{
+    const data=await authRequest("update",{name:$("profileName").value.trim()});
+    if(data.user)state.user=data.user;
+    toast("Profile saved.");
+    closeOverlay("accountOverlay");
+  }catch(error){toast(error.message)}
+};
+
+$("passwordForm").onsubmit=async e=>{
+  e.preventDefault();
+  const password=$("newPassword").value;
+  if(!password)return;
+  try{
+    await authRequest("update",{password});
+    $("newPassword").value="";
+    toast("Password changed.");
+  }catch(error){toast(error.message)}
+};
+
+$("manageBilling").onclick=async()=>{
+  try{
+    const res=await fetch("/api/billing",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({action:"portal"})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"Billing portal unavailable.");
+    location.href=data.url;
+  }catch(error){toast(error.message)}
+};
+
+$("logoutBtn").onclick=async()=>{
+  try{await authRequest("logout",{});}finally{location.reload()}
+};
+
+setAuthMode("signup");
+refreshSession().catch(error=>toast(error.message));
 </script>
 </body>
 </html>
