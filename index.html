@@ -597,8 +597,8 @@ $("logoutBtn").onclick=async()=>{
   try{await authRequest("logout",{});}finally{location.reload()}
 };
 
-handleAuthRedirect().finally(()=>refreshSession().catch(error=>toast(error.message)));
 setAuthMode("signup");
+handleAuthRedirect().finally(()=>{if(!state.recovery)refreshSession().catch(error=>toast(error.message));});
 </script>
 </body>
 </html>
