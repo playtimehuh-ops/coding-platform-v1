@@ -1,4 +1,5 @@
-import { readSession } from "../lib/auth.js";
+import { decrypt, readSession } from "../lib/auth.js";
+import { getGithubConnection } from "../lib/db.js";
 
 const API = "https://api.github.com";
 const API_VERSION = "2026-03-10";
@@ -183,7 +184,11 @@ export default async function handler(request) {
 
   try {
     const session = readSession(request);
-    if (!session?.accessToken) return json({ error: "Sign in with GitHub first." }, 401);
+    if (!session) return json({ error: "Create a Codebase account first." }, 401);
+
+    const connection = await getGithubConnection(session.sub);
+    const accessToken = connection ? decrypt(connection.token_encrypted) : null;
+    if (!accessToken) return json({ error: "Link GitHub to your Codebase account first.", code: "GITHUB_NOT_LINKED" }, 403);
 
     const body = await request.json();
     const action = body.action || "context";
@@ -192,19 +197,19 @@ export default async function handler(request) {
     if (!validRepo(repo)) return json({ error: "Invalid repository name." }, 400);
 
     if (action === "repos") {
-      return json({ repositories: await listRepositories(session.accessToken) });
+      return json({ repositories: await listRepositories(accessToken) });
     }
 
     if (action === "context") {
       const maxFiles = Number(body.maxFiles || 40);
-      return json(await collectRepository(repo, session.accessToken, Math.min(80, Math.max(1, maxFiles))));
+      return json(await collectRepository(repo, accessToken, Math.min(80, Math.max(1, maxFiles))));
     }
 
     if (action === "apply") {
       const changes = Array.isArray(body.changes) ? body.changes : [];
       if (!changes.length || changes.length > 12) return json({ error: "Provide 1-12 file changes." }, 400);
 
-      const context = await collectRepository(repo, session.accessToken, 80);
+      const context = await collectRepository(repo, accessToken, 80);
       const base = String(body.base || context.branch);
       if (!safeBranch(base)) return json({ error: "Invalid base branch." }, 400);
 
@@ -214,7 +219,7 @@ export default async function handler(request) {
         "-" +
         Math.random().toString(36).slice(2, 8);
 
-      await createBranch(repo, base, branch, session.accessToken);
+      await createBranch(repo, base, branch, accessToken);
 
       const results = [];
       for (const change of changes) {
@@ -225,7 +230,7 @@ export default async function handler(request) {
           String(change.sha || ""),
           String(body.message || "feat: apply AI coding changes"),
           branch,
-          session.accessToken
+          accessToken
         );
         results.push({
           path: change.path,
@@ -240,7 +245,7 @@ export default async function handler(request) {
         base,
         String(body.title || "Codebase AI changes"),
         String(body.description || "AI-proposed changes generated in Codebase. Review before merging."),
-        session.accessToken
+        accessToken
       );
 
       return json({
