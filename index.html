@@ -552,13 +552,18 @@ async function loadPlans(){
 $("repoSelect").onchange=()=>loadRepo($("repoSelect").value).catch(e=>toast(e.message));
 $("githubLinkBtn").onclick=()=>linkGithub();
 $("manageGithub").onclick=()=>linkGithub();
-$("openRepoBtn").onclick=()=>{const r=state.repos.find(x=>x.full_name===state.repo);if(r?.html_url)window.open(r.html_url,"_blank","noopener")};
+
 $("copyFileBtn").onclick=async()=>{if(!state.activeFile)return;try{await navigator.clipboard.writeText(state.activeFile.content);toast("File copied.")}catch{toast("Clipboard unavailable.")}};
 $("downloadFileBtn").onclick=()=>{if(!state.activeFile||!state.repo||!state.context)return;const a=document.createElement("a");a.href="/api/download?action=file&repo="+encodeURIComponent(state.repo)+"&path="+encodeURIComponent(state.activeFile.path)+"&branch="+encodeURIComponent(state.context.branch);document.body.appendChild(a);a.click();a.remove()};
 $("downloadRepoBtn").onclick=()=>{if(!state.repo||!state.context)return;const a=document.createElement("a");a.href="/api/download?action=repo&repo="+encodeURIComponent(state.repo)+"&branch="+encodeURIComponent(state.context.branch);document.body.appendChild(a);a.click();a.remove()};
 $("sendBtn").onclick=send;
 $("prompt").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")send()});
-document.querySelectorAll(".shortcut").forEach(b=>b.onclick=()=>{$("prompt").value=b.textContent+" ";$("prompt").focus()});
+document.querySelectorAll(".command").forEach(b=>{
+  b.onclick=()=>{
+    $("prompt").value=b.textContent.trim()+" ";
+    $("prompt").focus();
+  };
+});
 $("reviewBtn").onclick=runReview;
 $("plansBtn").onclick=()=>{openOverlay("plansOverlay");loadPlans().catch(e=>toast(e.message))};
 $("closePlans").onclick=()=>closeOverlay("plansOverlay");
@@ -609,30 +614,34 @@ async function ensureSupabaseBrowser(){
   if(supabaseBrowser)return supabaseBrowser;
   const res=await fetch("/api/config");
   const config=await res.json();
-  if(!config.supabaseUrl||!config.supabaseAnonKey)throw new Error("Supabase public configuration is missing.");
+  if(!config.supabaseUrl||!config.supabasePublishableKey)throw new Error("Supabase public configuration is missing.");
   if(!window.supabase?.createClient)throw new Error("Supabase client failed to load.");
-  supabaseBrowser=window.supabase.createClient(config.supabaseUrl,config.supabaseAnonKey,{
+  supabaseBrowser=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{
     auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
   });
+  const saveGithubProviderToken=async(session)=>{
+    if(!session?.provider_token)return;
+    try{
+      const response=await fetch("/api/github-link?action=store",{
+        method:"POST",credentials:"same-origin",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({providerToken:session.provider_token})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(response.ok){
+        state.github=data.github||null;
+        await loadGithubStatus();
+        toast("GitHub linked.");
+      }else if(data.error){
+        console.warn(data.error);
+      }
+    }catch(error){console.warn(error)}
+  };
   supabaseBrowser.auth.onAuthStateChange(async(event,session)=>{
-    if(session?.provider_token){
-      try{
-        const response=await fetch("/api/github-link?action=store",{
-          method:"POST",credentials:"same-origin",
-          headers:{"content-type":"application/json"},
-          body:JSON.stringify({providerToken:session.provider_token})
-        });
-        const data=await response.json();
-        if(response.ok){
-          state.github=data.github||null;
-          if(typeof loadGithubStatus==="function")await loadGithubStatus();
-          toast("GitHub linked.");
-        }else if(data.error){
-          console.warn(data.error);
-        }
-      }catch(error){console.warn(error)}
-    }
+    if(session?.provider_token) await saveGithubProviderToken(session);
   });
+  const current=await supabaseBrowser.auth.getSession();
+  if(current.data?.session?.provider_token) await saveGithubProviderToken(current.data.session);
   return supabaseBrowser;
 }
 
