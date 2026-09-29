@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { STATE_COOKIE, SESSION_COOKIE, SESSION_AGE, cookie, parseCookie, readSession, encodeSession, publicSession } from "../lib/auth.js";
+import { upsertUser } from "../lib/db.js";
 
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
@@ -63,7 +64,7 @@ export default async function handler(request) {
       const authUrl = new URL("https://github.com/login/oauth/authorize");
       authUrl.searchParams.set("client_id", env("GITHUB_CLIENT_ID"));
       authUrl.searchParams.set("redirect_uri", redirectUri);
-      authUrl.searchParams.set("scope", "repo read:user user:email");
+      authUrl.searchParams.set("scope", "repo workflow read:user user:email");
       authUrl.searchParams.set("state", state);
       return redirect(authUrl.toString(), [cookie(STATE_COOKIE, state, 600)]);
     }
@@ -80,6 +81,7 @@ export default async function handler(request) {
       const redirectUri = url.origin + "/api/auth?action=callback";
       const accessToken = await githubToken(code, redirectUri);
       const user = await githubUser(accessToken);
+      await upsertUser(user);
       const session = encodeSession(user, accessToken);
 
       return redirect("/", [
