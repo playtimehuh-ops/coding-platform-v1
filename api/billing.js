@@ -82,8 +82,8 @@ export default async function handler(request) {
         field("client_reference_id", session.login),
         field("customer_creation", "always"),
         field("subscription_data[metadata][plan]", planId),
-        field("subscription_data[metadata][github_id]", session.sub),
-        field("subscription_data[metadata][github_login]", session.login)
+        field("subscription_data[metadata][user_id]", session.sub),
+        field("subscription_data[metadata][account_email]", session.email)
       ].join("&");
 
       const checkout = await stripe("/checkout/sessions", encoded);
