@@ -1,178 +1,100 @@
 # Codebase — coding-platform-v1
 
-A coding-only AI workspace where users create a Codebase account, optionally link GitHub, ask an AI agent to modify repositories, review the proposed diff, and open a Pull Request.
+A coding-only AI workspace for building, reviewing, and shipping software.
 
-## Functional product
+## Services
 
-- Codebase email/password account creation and login
-- Email verification completion flow
-- Password recovery and password change
-- Signed, encrypted, expiring HTTP-only sessions
-- Optional GitHub repository connection
-- Repository discovery, file inspection and context collection
-- AI coding tasks with structured proposals
-- AI code review mode
-- Download individual files
-- Download repository ZIP
-- Download generated AI patches
-- Explicit Apply -> branch -> commit -> Pull Request
-- Persistent monthly usage and subscription state through Supabase
-- Stripe subscription checkout, cancellation state synchronization and billing portal
-- Free / Builder / Team plan limits
+The deployment is intentionally kept to three external service groups:
+- Supabase — accounts, authentication, database, and GitHub identity linking
+- OpenRouter — all AI model traffic through one API
+- Stripe — subscriptions and billing
+
+## Product features
+
+- Codebase account creation and login
+- Email verification and password recovery
+- Persistent account sessions
+- Optional GitHub connection through Supabase
+- Repository discovery and file indexing
+- OpenRouter-powered coding agent
+- Structured coding changes and diff previews
+- Apply changes to a new GitHub branch
+- Automatic Pull Request creation
+- AI code review
+- File downloads
+- Repository ZIP downloads
+- AI patch downloads
+- Plan limits and monthly usage
+- Stripe checkout and billing portal
+- Stripe subscription webhooks
+- Supabase persistence
 - GitHub Actions syntax checks
 
-## Architecture
+## Environment variables
 
-Browser
-  -> Codebase account
-  -> optional GitHub connection
-  -> repository explorer
-  -> coding agent
-  -> Vercel Functions
-     -> GitHub
-     -> Supabase Auth + database
-     -> OpenAI
-     -> Stripe
+### Supabase
+SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
 
-Supabase Auth supports email/password signup and password sign-in, and can require email confirmation before a session is issued. citeturn642296search0turn642296search1
+### OpenRouter
+OPENROUTER_API_KEY
+OPENROUTER_FREE_MODEL
+OPENROUTER_BUILDER_MODEL
+OPENROUTER_TEAM_MODEL
+APP_URL
 
-## Environment
+### Stripe
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+STRIPE_PRICE_BUILDER
+STRIPE_PRICE_TEAM
 
-Set these in Vercel:
+### Application session
+AUTH_SECRET
 
-Account auth:
-- SUPABASE_URL
-- SUPABASE_ANON_KEY
-- SUPABASE_SERVICE_ROLE_KEY
-- AUTH_SECRET
-
-AI:
-- OPENAI_API_KEY
-- OPENAI_MODEL
-- optional OPENAI_BASE_URL
-
-GitHub integration:
-- GITHUB_CLIENT_ID
-- GITHUB_CLIENT_SECRET
-
-Billing:
-- STRIPE_SECRET_KEY
-- STRIPE_WEBHOOK_SECRET
-- STRIPE_PRICE_BUILDER
-- STRIPE_PRICE_TEAM
-
-Never put service-role, GitHub client secrets, Stripe secrets, or AI API keys into browser files.
-
-## GitHub integration
-
-GitHub is not the Codebase login system. A signed-in user can optionally link GitHub when they want repository access.
-
-Callback URL:
-
-https://YOUR-DOMAIN/api/github-link?action=callback
-
-The linked OAuth token is encrypted server-side and stored in the GitHub connection record.
+AUTH_SECRET is an application-owned signing/encryption secret, not another external service.
 
 ## Supabase setup
 
-Run:
+1. Run `supabase/schema.sql` in the Supabase SQL editor.
+2. Enable email/password authentication.
+3. Configure your email verification and password recovery URLs.
+4. Enable the GitHub provider in Supabase Authentication.
+5. Enable manual identity linking if required by your Supabase project.
+6. Configure the GitHub OAuth application credentials inside Supabase Dashboard rather than this repository.
 
-supabase/schema.sql
+## OpenRouter setup
 
-in the Supabase SQL editor.
+Create one OpenRouter API key and set `OPENROUTER_API_KEY`.
 
-Supabase Auth is the credential system; the public users table stores app profile data, subscriptions store plan state, usage stores monthly runs, and github_connections stores the encrypted repository integration token.
+The default free model is `openrouter/free`. Builder and Team can use dedicated OpenRouter model slugs through their environment variables.
 
 ## Stripe setup
 
-Create recurring Prices for Builder and Team.
+Create recurring Prices for Builder and Team and set:
+- `STRIPE_PRICE_BUILDER`
+- `STRIPE_PRICE_TEAM`
 
-Set:
-- STRIPE_PRICE_BUILDER
-- STRIPE_PRICE_TEAM
+Configure the Stripe webhook endpoint as:
+`https://YOUR-DOMAIN/api/stripe-webhook`
 
-Set the webhook endpoint to:
-
-https://YOUR-DOMAIN/api/stripe-webhook
-
-Subscribe to:
-- checkout.session.completed
-- checkout.session.async_payment_succeeded
-- customer.subscription.created
-- customer.subscription.updated
-- customer.subscription.deleted
-
-The billing portal endpoint is available from the Account panel.
-
-## Current plans
-
-| Plan | Price | Agent runs/month | Context files |
-|---|---:|---:|---:|
-| Free | $0 | 20 | 12 |
-| Builder | $12 | 500 | 40 |
-| Team | $29 | 2,000 | 80 |
-
-Plan limits live in config/plans.js.
-
-## Coding flow
-
-1. User creates or logs into a Codebase account.
-2. User links GitHub.
-3. User selects a repository.
-4. The server indexes relevant repository files.
-5. The AI produces a structured proposal.
-6. Codebase renders the patch.
-7. User explicitly applies the proposal.
-8. Codebase creates a branch, writes the approved files and opens a Pull Request.
-
-The write path does not silently modify the default branch.
-
-## Downloads
-
-The workspace supports:
-- Download current file
-- Download repository ZIP
-- Download the AI-generated patch
-
-## Security
-
-- Password authentication is delegated to Supabase Auth rather than storing raw passwords.
-- Supabase documents bcrypt-based password hashing for its Auth service. citeturn642296search3
-- Account sessions are signed and encrypted with server-only AUTH_SECRET.
-- Sessions expire after seven days.
-- OAuth state is checked for GitHub linking.
-- GitHub access tokens are encrypted at rest in the application database.
-- AI sees repository files as untrusted content.
-- AI changes stay proposals until explicitly applied.
-- Provider secrets remain server-side.
-- Usage is checked before model execution when persistence is configured.
+Set its signing secret as `STRIPE_WEBHOOK_SECRET`.
 
 ## Deployment
 
-This is a server-backed application. GitHub Pages can host static files, but the account, AI, Stripe and protected GitHub features require a Node-compatible serverless deployment.
+Deploy the repository to Vercel or another Node-compatible serverless host.
 
-Recommended deployment target:
-- Vercel
+Run locally:
+`npm run dev`
 
-Run locally with:
+Run syntax checks:
+`npm test`
 
-npm run dev
+A static-only GitHub Pages deployment cannot execute the protected server functions needed for account auth, OpenRouter, Stripe, Supabase, and GitHub operations.
 
-Run syntax checks with:
+## Product expansion
 
-npm test
+The architecture leaves room for premium features such as larger context, higher agent limits, premium model routing, team workspaces, background coding jobs, isolated test execution, usage analytics, and deeper GitHub automation.
 
-The GitHub Actions workflow runs the smoke syntax check on pushes to main and on pull requests.
-
-## Revenue-oriented product pieces already present
-
-- Subscription plans
-- Usage metering
-- Paid model access
-- Team tier
-- Billing portal
-- AI code review
-- Repository downloads
-- Pull Request workflow
-
-These are product mechanisms, not a guarantee of revenue; pricing, distribution, operating costs, model costs, and retention determine whether the business makes money.
+These features can support a paid developer product, but revenue is not guaranteed and depends on costs, reliability, pricing, and user demand.
