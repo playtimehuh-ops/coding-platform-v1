@@ -1,0 +1,9 @@
+{
+  "name": "coding-platform-v1",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI coding workspace with GitHub repository context.",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
