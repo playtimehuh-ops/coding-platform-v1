@@ -1,7 +1,7 @@
 export default async function handler() {
   return new Response(JSON.stringify({
     supabaseUrl: process.env.SUPABASE_URL || "",
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+    supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY || "",
     appName: "Codebase"
   }), {
     headers: {
