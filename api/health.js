@@ -6,7 +6,7 @@ export default async function handler(request) {
     ok: true,
     service: "coding-platform-v1",
     authenticated: Boolean(session),
-    aiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    aiConfigured: Boolean(process.env.OPENROUTER_API_KEY),
     billingConfigured: Boolean(process.env.STRIPE_SECRET_KEY)
   }), {
     headers: { "content-type": "application/json; charset=utf-8" }
