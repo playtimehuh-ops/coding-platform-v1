@@ -1,5 +1,6 @@
 import { readSession } from "../lib/auth.js";
 import { PLANS, publicPlans } from "../config/plans.js";
+import { getSubscription } from "../lib/db.js";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -47,6 +48,20 @@ export default async function handler(request) {
 
     const session = readSession(request);
     if (!session) return json({ error: "Sign in first." }, 401);
+
+    if (action === "portal") {
+      const subscription = await getSubscription(session.sub);
+      if (!subscription?.stripe_customer_id) {
+        return json({ error: "No active Stripe customer was found for this account." }, 404);
+      }
+      const origin = new URL(request.url).origin;
+      const encoded = [
+        field("customer", subscription.stripe_customer_id),
+        field("return_url", origin)
+      ].join("&");
+      const portal = await stripe("/billing_portal/sessions", encoded);
+      return json({ ok: true, url: portal.url });
+    }
 
     if (action === "checkout") {
       const planId = String(body.plan || "").trim();
