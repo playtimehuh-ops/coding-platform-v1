@@ -38,9 +38,9 @@ function env(name, fallback = "") {
   return process.env[name] || fallback;
 }
 
-async function reviewWithAI(context) {
-  const key = env("OPENAI_API_KEY");
-  if (!key) throw new Error("OPENAI_API_KEY is not configured on the server.");
+async function reviewWithAI(context, requestUrl, model) {
+  const key = env("OPENROUTER_API_KEY");
+  if (!key) throw new Error("OPENROUTER_API_KEY is not configured on the server.");
 
   const files = context.files.map(file =>
     "FILE: " + file.path + "\nSHA: " + file.sha + "\n\n" + file.content
@@ -58,7 +58,7 @@ async function reviewWithAI(context) {
   ].join("\n");
 
   const response = await fetch(
-    env("OPENAI_BASE_URL", "https://api.openai.com/v1").replace(/\/$/, "") + "/responses",
+    "https://openrouter.ai/api/v1/chat/completions",
     {
       method: "POST",
       headers: {
@@ -85,9 +85,10 @@ async function reviewWithAI(context) {
 
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || "Code review failed.");
-  if (!data.output_text) throw new Error("Code review returned no output.");
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenRouter returned no code review.");
 
-  try { return JSON.parse(data.output_text); }
+  try { return JSON.parse(content); }
   catch { throw new Error("Code review returned invalid structured output."); }
 }
 
@@ -116,11 +117,14 @@ export default async function handler(request) {
     }
 
     const context = await collectRepository(repo, githubToken, PLAN_LIMITS[plan].contextFiles);
-    const result = await reviewWithAI(context);
+    const model = plan === "team" ? env("OPENROUTER_TEAM_MODEL", "openrouter/free") : plan === "builder" ? env("OPENROUTER_BUILDER_MODEL", "openrouter/free") : env("OPENROUTER_FREE_MODEL", "openrouter/free");
+    const result = await reviewWithAI(context, request.url, model);
     const nextUsed = dbConfigured() ? await addUsage(session.sub) : used + 1;
 
     return json({
       ok: true,
+      provider: "openrouter",
+      model,
       summary: result.summary,
       findings: result.findings,
       plan,
