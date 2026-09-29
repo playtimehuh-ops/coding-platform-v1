@@ -45,19 +45,14 @@ export default async function handler(request) {
     const action = body.action || "catalog";
 
     if (action === "catalog") {
-      return json({
-        plans: publicPlans(),
-        configured: Boolean(process.env.STRIPE_SECRET_KEY)
-      });
+      return json({ plans: publicPlans(), configured: Boolean(process.env.STRIPE_SECRET_KEY) });
     }
 
     if (action === "checkout") {
       const planId = String(body.plan || "").trim();
       const plan = PLANS[planId];
 
-      if (!plan || planId === "free") {
-        return json({ error: "Choose a paid plan." }, 400);
-      }
+      if (!plan || planId === "free") return json({ error: "Choose a paid plan." }, 400);
 
       const priceEnv = planId === "builder" ? "STRIPE_PRICE_BUILDER" : "STRIPE_PRICE_TEAM";
       const price = env(priceEnv);
@@ -70,7 +65,9 @@ export default async function handler(request) {
         field("success_url", origin + "/?checkout=success&session_id={CHECKOUT_SESSION_ID}"),
         field("cancel_url", origin + "/?checkout=cancelled"),
         field("client_reference_id", session.login),
+        field("customer_creation", "always"),
         field("subscription_data[metadata][plan]", planId),
+        field("subscription_data[metadata][github_id]", session.sub),
         field("subscription_data[metadata][github_login]", session.login)
       ].join("&");
 
