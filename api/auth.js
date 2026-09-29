@@ -58,6 +58,14 @@ function validatePassword(password) {
   return typeof password === "string" && password.length >= 8 && password.length <= 256;
 }
 
+async function refreshFromToken(refreshToken) {
+  if (!refreshToken) return null;
+  return supabase("/auth/v1/token?grant_type=refresh_token", {
+    method: "POST",
+    body: JSON.stringify({ refresh_token: refreshToken })
+  });
+}
+
 function setSession(user, accessToken, refreshToken) {
   return cookie(
     ACCOUNT_COOKIE,
@@ -228,11 +236,27 @@ export default async function handler(request) {
         if (name) userData.data = { display_name: name };
         if (password !== null) userData.password = password;
 
-        const data = await supabase("/auth/v1/user", {
-          method: "PUT",
-          accessToken: session.accessToken,
-          body: JSON.stringify(userData)
-        });
+        let accessToken=session.accessToken;
+        let refreshToken=session.refreshToken;
+        let data;
+
+        try{
+          data = await supabase("/auth/v1/user", {
+            method: "PUT",
+            accessToken,
+            body: JSON.stringify(userData)
+          });
+        }catch(error){
+          if(!refreshToken) throw error;
+          const refreshed=await refreshFromToken(refreshToken);
+          accessToken=refreshed.access_token;
+          refreshToken=refreshed.refresh_token||refreshToken;
+          data=await supabase("/auth/v1/user", {
+            method: "PUT",
+            accessToken,
+            body: JSON.stringify(userData)
+          });
+        }
 
         await upsertUser(data);
 
@@ -240,7 +264,7 @@ export default async function handler(request) {
           ok: true,
           user: publicSession(data)
         }, 200, {
-          "Set-Cookie": setSession(data, session.accessToken, session.refreshToken)
+          "Set-Cookie": setSession(data, accessToken, refreshToken)
         });
       }
 
