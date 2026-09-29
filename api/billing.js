@@ -38,15 +38,15 @@ export default async function handler(request) {
   if (request.method !== "POST") return json({ error: "POST required." }, 405);
 
   try {
-    const session = readSession(request);
-    if (!session) return json({ error: "Sign in first." }, 401);
-
     const body = await request.json();
     const action = body.action || "catalog";
 
     if (action === "catalog") {
       return json({ plans: publicPlans(), configured: Boolean(process.env.STRIPE_SECRET_KEY) });
     }
+
+    const session = readSession(request);
+    if (!session) return json({ error: "Sign in first." }, 401);
 
     if (action === "checkout") {
       const planId = String(body.plan || "").trim();
