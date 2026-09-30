@@ -405,7 +405,7 @@ async function runReview(){
 }
 
 function newFile(){
-  const path=prompt("File name (for example src/app.js):");
+  const path=window.prompt("File name (for example src/app.js):");
   if(!path)return;
   if(state.files.some(f=>f.path===path)){toast("That file already exists.");return}
   state.files.push({path,sha:"",size:0,content:""});
