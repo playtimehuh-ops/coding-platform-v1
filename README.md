@@ -35,3 +35,11 @@ No application secrets are required for local mode.
 
 Use Chromium-based browsers for the best folder access support. Codebase uses the browser File System Access API when available and falls back to a directory file picker.
 
+
+## Token accounts
+
+There is no username, email, or password system.
+
+Use **Generate new token** to create an account credential. The token itself is the account identity and is sent as a standard `Authorization: Bearer cb_…` credential to the AI endpoints.
+
+Because the account identity is derived from the token, the same token works across browsers and devices. Keep the token private: possession of the token is possession of the account.
