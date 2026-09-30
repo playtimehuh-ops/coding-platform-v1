@@ -1,54 +1,37 @@
 # Codebase — coding-platform-v1
 
-A coding-only AI workspace for building, reviewing, and shipping software.
+A local-first AI coding workspace.
 
-## Architecture
+## How it works
 
-- Supabase — accounts, authentication, database, and GitHub OAuth
-- Vercel API routes — Codebase's server-side AI layer
-- llmfaucet — keyless free AI inference
-- Stripe — subscriptions and billing
-- GitHub — repository access and Pull Requests
+- Open a project folder directly in the browser.
+- Browse and edit your local source files.
+- Ask the Code Agent for changes, explanations, refactors, tests, and fixes.
+- Review proposed diffs before applying them locally.
+- Export the project as JSON or download individual files.
+- The selected project context is sent to the server only when you press the AI action.
 
-Codebase does not require users to enter an AI API key.
+## No account or GitHub
 
-The AI calls happen server-side through `/api/chat` and `/api/review`. The browser never receives an AI provider secret.
+Codebase has no account creation screen and no login flow.
 
-## Keyless AI
+Codebase does not connect to GitHub, does not import GitHub repositories, and does not create branches or Pull Requests.
 
-The default AI gateway is a public OpenAI-compatible endpoint that supports anonymous/keyless requests. Codebase uses the server-side `lib/ai.js` adapter and the existing Vercel API routes.
+The workspace is local to the browser and is also saved in localStorage for convenience.
 
-No separate Cloudflare account, Worker deployment, AI server URL, or AI API key is required.
+## AI
+
+The AI layer is server-side through `/api/chat` and `/api/review`, using the public keyless llmfaucet gateway.
+
+There is no AI API key or AI endpoint setting in the project.
 
 ## Deployment
 
-Deploy the repository normally to Vercel. Configure the existing Supabase and Stripe environment variables when those features are enabled. The AI layer itself needs no provider configuration.
+Deploy the repository normally to Vercel.
 
-## Secrets
+No application secrets are required for local mode.
 
-Never put these into `index.html`:
+## Local controls
 
-- `SUPABASE_SECRET_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
+Use Chromium-based browsers for the best folder access support. Codebase uses the browser File System Access API when available and falls back to a directory file picker.
 
-GitHub OAuth credentials remain in the Supabase dashboard.
-
-## Product features
-
-- Codebase account creation and login
-- Email verification and password recovery
-- Persistent sessions
-- GitHub repository integration
-- Repository discovery and file indexing
-- Keyless AI coding agent
-- Structured coding changes and diff previews
-- Apply approved changes to a new GitHub branch
-- Automatic Pull Request creation
-- AI code review
-- File downloads
-- Repository ZIP downloads
-- AI patch downloads
-- Plan limits and monthly usage
-- Stripe Checkout and billing portal
-- Supabase persistence
