@@ -411,7 +411,7 @@ function addMessage(who,text){
 function parseJsonText(raw){
   const text=String(raw||"").trim();
   if(!text)throw new Error("The AI server returned an empty response.");
-  const fenced=text.match(/\`\`\`(?:json)?\s*([\\s\\S]*?)\s*\`\`\`/i);
+  const fenced=text.match(/\`\`\`(?:json)?\s*([\s\S]*?)\s*\`\`\`/i);
   const candidates=[fenced?.[1],text];
   const first=text.indexOf("{"), last=text.lastIndexOf("}");
   if(first>=0&&last>first)candidates.push(text.slice(first,last+1));
