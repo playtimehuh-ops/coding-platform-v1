@@ -57,6 +57,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
   <div class="top-actions">
     <div class="status" id="status"><i class="status-dot"></i><span>Local</span></div>
     <button class="top-btn" id="accountBtn">Account token</button>
+    <button class="top-btn" id="plansBtn">Plans</button>
     <button class="top-btn" id="openFolderBtn">Open folder</button>
     <button class="top-btn" id="newFileBtn">New file</button>
   </div>
@@ -102,6 +103,23 @@ button:disabled{cursor:not-allowed;opacity:.48}
   </aside>
 </main>
 </div>
+<div class="overlay" id="plansOverlay">
+  <div class="modal" style="width:min(760px,calc(100vw - 26px))">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Plans</div>
+        <div class="modal-sub">Your plan is attached to your global account token.</div>
+      </div>
+      <button class="icon-btn" id="closePlans">Close</button>
+    </div>
+    <div class="modal-body">
+      <div id="planStatus" style="margin-bottom:12px;color:#8b96a1;font:9px var(--mono)">Current plan: Free</div>
+      <div class="plans" id="plans"></div>
+      <div id="billingNote" style="margin-top:10px;color:#68737d;font-size:8px;line-height:1.5"></div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="tokenOverlay">
   <div class="modal" style="width:min(560px,calc(100vw - 26px))">
     <div class="modal-head">
@@ -135,7 +153,9 @@ const state={
   activeFile:null,
   model:"auto:coding",
   projectName:"Local project",
-  token:localStorage.getItem("codebase-account-token")||""
+  token:localStorage.getItem("codebase-account-token")||"",
+  plan:"free",
+  billingStatus:"inactive"
 };
 
 function escapeHtml(value){
@@ -151,12 +171,17 @@ function setToken(token){
   if(state.token) localStorage.setItem("codebase-account-token",state.token);
   else localStorage.removeItem("codebase-account-token");
   updateAccountStatus();
+  loadBillingStatus().catch(()=>{});
 }
 
 function updateAccountStatus(){
   $("status").innerHTML=state.token
     ? '<i class="status-dot"></i><span>Account active</span>'
     : '<i class="status-dot"></i><span>Local</span>';
+}
+
+function closePlans(){
+  $("plansOverlay").style.display="none";
 }
 
 function openTokenModal(){
@@ -170,6 +195,521 @@ function openTokenModal(){
 
 function closeTokenModal(){
   $("tokenOverlay").style.display="none";
+}
+
+async function loadBillingStatus(){
+  if(!state.token){
+    state.plan="free";
+    state.billingStatus="inactive";
+    $("planStatus").textContent="Current plan: Free";
+    return;
+  }
+  try{
+    const res=await fetch("/api/billing",{
+      method:"POST",
+      headers:{"content-type":"application/json",...accountHeaders()},
+      body:JSON.stringify({action:"status"})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"Could not load plan status.");
+    state.plan=data.plan||"free";
+    state.billingStatus=data.status||"inactive";
+    $("planStatus").textContent="Current plan: "+(state.plan.charAt(0).toUpperCase()+state.plan.slice(1))+
+      (state.billingStatus!=="inactive"?" · "+state.billingStatus:"");
+  }catch(error){
+    $("planStatus").textContent="Current plan: "+(state.plan==="free"?"Free":state.plan);
+  }
+}
+
+async function openPlans(){
+  $("plansOverlay").style.display="flex";
+  $("billingNote").textContent="";
+  try{
+    const res=await fetch("/api/billing",{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({action:"catalog"})
+    });
+    const data=await res.json();
+    const plans=data.plans||[];
+    $("plans").innerHTML=plans.map(plan=>{
+      const current=plan.id===state.plan;
+      const paid=plan.price>0;
+      return '<div class="plan '+(current?"featured":"")+'"><h3>'+escapeHtml(plan.name)+'</h3>'+
+        '<div class="price">
+  const el=$("toast");
+  el.textContent=message;
+  el.classList.add("show");
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer=setTimeout(()=>el.classList.remove("show"),2600);
+}
+
+function log(message,type){
+  const el=document.createElement("div");
+  el.innerHTML='<span class="'+(type==="warn"?"term-warn":"term-ok")+'">•</span> '+escapeHtml(message);
+  $("terminal").appendChild(el);
+  $("terminal").scrollTop=$("terminal").scrollHeight;
+}
+
+function normalizeFile(file,path){
+  return {
+    path,
+    sha:"",
+    size:file.size||0,
+    content:""
+  };
+}
+
+function renderTree(){
+  if(!state.files.length){
+    $("tree").innerHTML='<div class="empty">Open a local project folder.<br>No account. No GitHub connection.</div>';
+    return;
+  }
+  $("tree").innerHTML=state.files.map(file=>{
+    const ext=(file.path.split(".").pop()||"file").slice(0,2).toUpperCase();
+    return '<button class="tree-row '+(state.activeFile?.path===file.path?"active":"")+'" data-path="'+escapeHtml(file.path)+'"><span class="tree-icon">'+escapeHtml(ext)+'</span><span class="tree-name">'+escapeHtml(file.path)+'</span></button>';
+  }).join("");
+  document.querySelectorAll(".tree-row").forEach(row=>row.onclick=()=>{
+    saveActiveFile();
+    state.activeFile=state.files.find(f=>f.path===row.dataset.path)||null;
+    renderTree();
+    renderCode();
+  });
+}
+
+function renderCode(){
+  if(!state.activeFile){
+    $("source").textContent="// Open a project folder to begin.";
+    $("gutter").textContent="1";
+    $("tabs").innerHTML="";
+    return;
+  }
+  $("source").textContent=state.activeFile.content||"";
+  $("gutter").textContent=String(state.activeFile.content||"").split("\n").map((_,i)=>i+1).join("\n");
+  $("tabs").innerHTML='<div class="tab active">'+escapeHtml(state.activeFile.path)+'</div>';
+}
+
+function saveActiveFile(){
+  if(!state.activeFile)return;
+  state.activeFile.content=$("source").innerText||$("source").textContent||"";
+  state.activeFile.size=state.activeFile.content.length;
+  saveWorkspace();
+  renderCode();
+}
+
+function saveWorkspace(){
+  try{
+    localStorage.setItem("codebase-local-project",JSON.stringify({
+      projectName:state.projectName,
+      files:state.files
+    }));
+  }catch{}
+}
+
+function restoreWorkspace(){
+  try{
+    const raw=localStorage.getItem("codebase-local-project");
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    if(!Array.isArray(data.files)||!data.files.length)return;
+    state.projectName=String(data.projectName||"Local project");
+    state.files=data.files.filter(f=>f&&typeof f.path==="string"&&typeof f.content==="string");
+    state.activeFile=state.files[0]||null;
+    $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · local only";
+    renderTree();
+    renderCode();
+    log("Restored local workspace.","ok");
+  }catch{}
+}
+
+async function openFolder(){
+  if(window.showDirectoryPicker){
+    try{
+      const handle=await window.showDirectoryPicker();
+      const files=[];
+      async function walk(dir,prefix){
+        for await(const entry of dir.values()){
+          const path=prefix?prefix+"/"+entry.name:entry.name;
+          if(entry.kind==="directory"){
+            if(["node_modules",".git","dist","build","coverage",".next"].includes(entry.name))continue;
+            await walk(entry,path);
+          }else if(entry.kind==="file"){
+            if(!/\.(js|jsx|ts|tsx|json|html|css|scss|md|py|go|rs|java|php|rb|vue|svelte|yml|yaml|sql|sh|txt)$/i.test(entry.name))continue;
+            try{
+              const file=await entry.getFile();
+              const text=await file.text();
+              files.push({path,sha:"",size:text.length,content:text.slice(0,120000)});
+            }catch{}
+          }
+        }
+      }
+      await walk(handle,"");
+      state.projectName=handle.name||"Local project";
+      state.files=files.slice(0,80);
+      state.activeFile=state.files[0]||null;
+      $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · local only";
+      renderTree();
+      renderCode();
+      saveWorkspace();
+      log("Loaded "+state.files.length+" source files from "+state.projectName+".","ok");
+      return;
+    }catch(error){
+      if(error?.name==="AbortError")return;
+      toast(error.message||"Could not open the folder.");
+    }
+  }
+  $("folderInput").click();
+}
+
+$("folderInput").addEventListener("change",async e=>{
+  const files=[];
+  for(const file of Array.from(e.target.files||[]).slice(0,80)){
+    if(!/\.(js|jsx|ts|tsx|json|html|css|scss|md|py|go|rs|java|php|rb|vue|svelte|yml|yaml|sql|sh|txt)$/i.test(file.name))continue;
+    const text=await file.text().catch(()=> "");
+    files.push({path:file.webkitRelativePath||file.name,sha:"",size:text.length,content:text.slice(0,120000)});
+  }
+  if(!files.length){toast("No supported source files found.");return}
+  state.projectName=(e.target.files?.[0]?.webkitRelativePath||"Local project").split("/")[0]||"Local project";
+  state.files=files;
+  state.activeFile=state.files[0]||null;
+  $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · local only";
+  renderTree();
+  renderCode();
+  saveWorkspace();
+  log("Loaded "+state.files.length+" source files.","ok");
+});
+
+function currentContext(){
+  saveActiveFile();
+  return state.files.map(file=>({
+    path:file.path,
+    sha:file.sha||"",
+    content:String(file.content||"").slice(0,8000)
+  })).slice(0,80);
+}
+
+function simpleDiff(before,after){
+  const a=String(before||"").split("\n"),b=String(after||"").split("\n"),rows=["@@ file change @@"];
+  const max=Math.max(a.length,b.length);
+  for(let i=0;i<max;i++){
+    if(a[i]===b[i])rows.push("  "+(a[i]??""));
+    else{if(i<a.length)rows.push("- "+a[i]);if(i<b.length)rows.push("+ "+b[i])}
+  }
+  return rows.join("\n");
+}
+
+function addMessage(who,text){
+  const el=document.createElement("div");
+  el.className="msg";
+  el.innerHTML='<div class="msg-head"><div class="avatar '+(who==="AI"?"ai":"you")+'">'+who+'</div>'+who+'<span class="msg-time">· now</span></div><div class="msg-body"></div>';
+  el.querySelector(".msg-body").textContent=text;
+  $("chat").appendChild(el);
+  $("chat").scrollTop=$("chat").scrollHeight;
+  return el;
+}
+
+function addAgentResult(data){
+  const el=document.createElement("div");
+  el.className="msg";
+  let html='<div class="msg-head"><div class="avatar ai">AI</div>Code Agent<span class="msg-time">· now</span></div><div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Task analyzed.")+'</strong></p>';
+  if(data.rationale)html+="<p>"+escapeHtml(data.rationale)+"</p>";
+  if(data.tests?.length)html+='<div class="meta-line">Suggested checks</div>'+data.tests.map(t=>"<p>• "+escapeHtml(t)+"</p>").join("");
+  for(let i=0;i<(data.changes||[]).length;i++){
+    const change=data.changes[i];
+    const before=state.files.find(f=>f.path===change.path)?.content||"";
+    html+='<div class="change"><div class="change-head"><span>'+escapeHtml(change.path)+'</span><span>proposed</span></div><pre class="diff">'+escapeHtml(simpleDiff(before,change.content))+'</pre><div class="actions"><button class="mini apply one">Apply locally</button></div></div>';
+  }
+  if(data.changes?.length)html+='<div class="actions"><button class="mini download-patch">Download patch</button><button class="mini apply all">Apply all locally</button></div>';
+  else html+='<div class="meta-line">No file changes proposed.</div>';
+  html+="</div>";
+  el.innerHTML=html;
+  $("chat").appendChild(el);
+  $("chat").scrollTop=$("chat").scrollHeight;
+
+  el.querySelectorAll(".one").forEach((button,i)=>button.onclick=()=>applyChanges([data.changes[i]]));
+  el.querySelector(".all")?.addEventListener("click",()=>applyChanges(data.changes));
+  el.querySelector(".download-patch")?.addEventListener("click",()=>downloadPatch(data.changes));
+}
+
+function applyChanges(changes){
+  for(const change of changes||[]){
+    const existing=state.files.find(file=>file.path===change.path);
+    if(existing){
+      existing.content=String(change.content||"");
+      existing.size=existing.content.length;
+    }else{
+      state.files.push({path:change.path,sha:"",size:String(change.content||"").length,content:String(change.content||"")});
+    }
+  }
+  state.activeFile=state.files.find(f=>f.path===state.activeFile?.path)||state.files[0]||null;
+  saveWorkspace();
+  renderTree();
+  renderCode();
+  log("Applied "+(changes?.length||0)+" change(s) locally.","ok");
+  toast("Changes applied locally.");
+}
+
+function downloadText(filename,text,mime){
+  const url=URL.createObjectURL(new Blob([text],{type:mime||"text/plain"}));
+  const a=document.createElement("a");
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function downloadPatch(changes){
+  const patch=(changes||[]).map(change=>{
+    const before=state.files.find(f=>f.path===change.path)?.content||"";
+    return "diff --git a/"+change.path+" b/"+change.path+"\n"+simpleDiff(before,change.content);
+  }).join("\n\n");
+  downloadText("codebase-local.patch",patch,"text/x-diff");
+}
+
+async function send(){
+  const prompt=$("prompt").value.trim();
+  if(!prompt)return;
+  saveActiveFile();
+  const files=currentContext();
+  if(!files.length){
+    toast("Open a local project folder first.");
+    return;
+  }
+  $("prompt").value="";
+  addMessage("YOU",prompt);
+  const thinking=addMessage("AI","Inspecting the local project and planning the change…");
+  $("sendBtn").disabled=true;
+  try{
+    if(!state.token){
+      thinking.remove();
+      $("prompt").value=prompt;
+      openTokenModal();
+      $("sendBtn").disabled=false;
+      return;
+    }
+    const res=await fetch("/api/chat",{
+      method:"POST",
+      headers:{"content-type":"application/json",...accountHeaders()},
+      body:JSON.stringify({prompt,model:$("modelSelect").value||"auto:coding",context:{repository:state.projectName,branch:"local",language:"mixed",description:"Local browser workspace",files}})
+    });
+    const data=await res.json();
+    thinking.remove();
+    if(!res.ok)throw new Error(data.error||"The coding agent failed.");
+    addAgentResult(data);
+    log("AI proposal ready.","ok");
+  }catch(error){
+    thinking.remove();
+    addMessage("AI",error.message||"The coding agent failed.");
+    log(error.message||"Agent failed","warn");
+  }finally{$("sendBtn").disabled=false}
+}
+
+async function runReview(){
+  if(!state.token){openTokenModal();return}
+  saveActiveFile();
+  const files=currentContext();
+  if(!files.length){toast("Open a local project folder first.");return}
+  $("reviewBtn").disabled=true;
+  addMessage("AI","Reviewing the local project…");
+  try{
+    if(!state.token){
+      openTokenModal();
+      return;
+    }
+    const res=await fetch("/api/review",{
+      method:"POST",
+      headers:{"content-type":"application/json",...accountHeaders()},
+      body:JSON.stringify({model:$("modelSelect").value||"auto:coding",context:{repository:state.projectName,branch:"local",files}})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"Code review failed.");
+    const el=document.createElement("div");
+    el.className="msg";
+    let html='<div class="msg-head"><div class="avatar ai">AI</div>Code Review<span class="msg-time">· now</span></div><div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Review complete.")+'</strong></p>';
+    if(data.findings?.length)html+=data.findings.map(f=>'<div class="review-item"><div class="review-sev '+escapeHtml(f.severity||"low")+'">'+escapeHtml(f.severity||"low")+'</div><div class="review-title">'+escapeHtml(f.title||"Finding")+'</div><div class="review-detail">'+escapeHtml(f.detail||"")+'</div><div class="review-path">'+escapeHtml(f.path||"")+'</div></div>').join("");
+    else html+='<div class="meta-line">No concrete findings returned.</div>';
+    html+="</div>";
+    el.innerHTML=html;
+    $("chat").appendChild(el);
+    $("chat").scrollTop=$("chat").scrollHeight;
+    log("Review complete.","ok");
+  }catch(error){toast(error.message);log(error.message,"warn")}
+  finally{$("reviewBtn").disabled=false}
+}
+
+function newFile(){
+  const path=window.prompt("File name (for example src/app.js):");
+  if(!path)return;
+  if(state.files.some(f=>f.path===path)){toast("That file already exists.");return}
+  state.files.push({path,sha:"",size:0,content:""});
+  state.activeFile=state.files[state.files.length-1];
+  saveWorkspace();
+  renderTree();
+  renderCode();
+  log("Created "+path+" locally.","ok");
+}
+
+function exportProject(){
+  saveActiveFile();
+  const payload={
+    format:"codebase-local-project",
+    projectName:state.projectName,
+    exportedAt:new Date().toISOString(),
+    files:state.files.map(f=>({path:f.path,content:f.content}))
+  };
+  downloadText("codebase-project.json",JSON.stringify(payload,null,2),"application/json");
+}
+
+$("accountBtn").onclick=openTokenModal;
+$("plansBtn").onclick=openPlans;
+$("closePlans").onclick=()=>{closePlans()};
+
+$("closeToken").onclick=closeTokenModal;
+$("plansOverlay").onclick=e=>{if(e.target.id==="plansOverlay")closePlans()};
+$("closeToken").onclick=closeTokenModal;
+$("tokenOverlay").onclick=e=>{if(e.target.id==="tokenOverlay")closeTokenModal()};
+
+$("generateTokenBtn").onclick=async()=>{
+  $("generateTokenBtn").disabled=true;
+  try{
+    const res=await fetch("/api/token",{method:"POST",headers:{"content-type":"application/json"}});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"Could not generate token.");
+    $("tokenInput").value=data.token;
+    $("tokenNote").textContent="New token generated. Save it somewhere safe before using it on another device.";
+  }catch(error){
+    $("tokenNote").textContent=error.message;
+  }finally{$("generateTokenBtn").disabled=false}
+};
+
+$("saveTokenBtn").onclick=async()=>{
+  const token=$("tokenInput").value.trim();
+  if(!token){$("tokenNote").textContent="Enter a token first.";return}
+  $("saveTokenBtn").disabled=true;
+  try{
+    const res=await fetch("/api/account",{headers:{Authorization:"Bearer "+token}});
+    const data=await res.json();
+    if(!res.ok||!data.authenticated)throw new Error(data.error||"Invalid token.");
+    setToken(token);
+    $("tokenNote").textContent="Token accepted. This is now the active account.";
+    updateAccountStatus();
+    await loadBillingStatus();
+  }catch(error){
+    $("tokenNote").textContent=error.message;
+  }finally{$("saveTokenBtn").disabled=false}
+};
+
+$("copyTokenBtn").onclick=async()=>{
+  const token=$("tokenInput").value.trim();
+  if(!token){$("tokenNote").textContent="Nothing to copy.";return}
+  try{await navigator.clipboard.writeText(token);$("tokenNote").textContent="Token copied."}
+  catch{$("tokenNote").textContent="Clipboard unavailable."}
+};
+
+$("openFolderBtn").onclick=openFolder;
+$("openFolderSideBtn").onclick=openFolder;
+$("newFileBtn").onclick=newFile;
+$("saveFileBtn").onclick=()=>{saveActiveFile();toast("File saved locally.")};
+$("downloadFileBtn").onclick=()=>{
+  if(!state.activeFile){toast("Select a file first.");return}
+  saveActiveFile();
+  downloadText(state.activeFile.path.split("/").pop()||"file.txt",state.activeFile.content,"text/plain");
+};
+$("exportProjectBtn").onclick=exportProject;
+$("sendBtn").onclick=send;
+$("reviewBtn").onclick=runReview;
+$("modelSelect").onchange=()=>{state.model=$("modelSelect").value;};
+$("prompt").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")send()});
+document.querySelectorAll(".command").forEach(button=>{
+  button.onclick=()=>{
+    $("prompt").value=button.textContent.trim()+" ";
+    $("prompt").focus();
+  };
+});
+$("source").addEventListener("input",()=>{
+  if(state.activeFile){
+    state.activeFile.content=$("source").innerText||"";
+    state.activeFile.size=state.activeFile.content.length;
+    saveWorkspace();
+    $("gutter").textContent=state.activeFile.content.split("\n").map((_,i)=>i+1).join("\n");
+  }
+});
+
+window.addEventListener("load",async()=>{
+  restoreWorkspace();
+  updateAccountStatus();
+  try{
+    const res=await fetch("/api/models");
+    const data=await res.json();
+    const models=data.models||[];
+    if(models.length){
+      $("modelSelect").innerHTML=models.map(m=>'<option value="'+escapeHtml(m.id)+'">'+escapeHtml(m.name||m.id)+'</option>').join("");
+      $("modelSelect").value="auto:coding";
+    }
+  }catch{}
+});
+</script>
+</body>
+</html>+escapeHtml(plan.price)+'<small>/mo</small></div>'+
+        '<p>'+Number(plan.runs||0).toLocaleString()+' AI coding runs per month.</p>'+
+        '<ul><li>'+escapeHtml(plan.contextFiles)+' files in AI context</li>'+
+        '<li>Global token account</li><li>No username or password</li></ul>'+
+        '<button class="plan-choice '+(current?"primary":"")+'" data-plan="'+escapeHtml(plan.id)+'">'+
+        (current?"Current plan":(paid?"Choose "+escapeHtml(plan.name):"Use Free"))+'</button></div>';
+    }).join("");
+    $("plans").querySelectorAll(".plan-choice").forEach(button=>{
+      button.onclick=()=>startCheckout(button.dataset.plan);
+    });
+    await loadBillingStatus();
+  }catch(error){
+    $("billingNote").textContent=error.message||"Could not load plans.";
+  }
+}
+
+async function startCheckout(plan){
+  if(plan==="free"){
+    toast("Free is available automatically.");
+    return;
+  }
+  if(!state.token){
+    closePlans();
+    openTokenModal();
+    $("tokenNote").textContent="Generate or use an account token before purchasing a plan.";
+    return;
+  }
+  const button=$("plans").querySelector('[data-plan="'+CSS.escape(plan)+'"]');
+  if(button)button.disabled=true;
+  try{
+    const res=await fetch("/api/billing",{
+      method:"POST",
+      headers:{"content-type":"application/json",...accountHeaders()},
+      body:JSON.stringify({action:"checkout",plan})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"Checkout could not be created.");
+    location.href=data.url;
+  }catch(error){
+    $("billingNote").textContent=error.message||"Checkout failed.";
+    if(button)button.disabled=false;
+  }
+}
+
+async function manageBilling(){
+  if(!state.token){
+    openTokenModal();
+    return;
+  }
+  try{
+    const res=await fetch("/api/billing",{
+      method:"POST",
+      headers:{"content-type":"application/json",...accountHeaders()},
+      body:JSON.stringify({action:"portal"})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||"Billing portal unavailable.");
+    location.href=data.url;
+  }catch(error){
+    $("billingNote").textContent=error.message||"Billing portal unavailable.";
+  }
 }
 
 function toast(message){
