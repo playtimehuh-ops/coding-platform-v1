@@ -105,7 +105,7 @@ export default async function handler(request) {
     const context = normalizeContext(body.context);
     const result = await freeAI({
       model,
-      maxTokens: 24000,
+      maxTokens: 6000,
       json: true,
       messages: [
         { role: "system", content: SYSTEM },
