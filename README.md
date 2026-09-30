@@ -6,7 +6,7 @@ A coding-only AI workspace for building, reviewing, and shipping software.
 
 - Supabase — accounts, authentication, database, and GitHub OAuth
 - Vercel API routes — Codebase's server-side AI layer
-- llmfaucet — keyless free AI inference fallback
+- llmfaucet — keyless free AI inference
 - Stripe — subscriptions and billing
 - GitHub — repository access and Pull Requests
 
@@ -18,11 +18,11 @@ The AI calls happen server-side through `/api/chat` and `/api/review`. The brows
 
 The default AI gateway is a public OpenAI-compatible endpoint that supports anonymous/keyless requests. Codebase uses the server-side `lib/ai.js` adapter and the existing Vercel API routes.
 
-No separate Cloudflare account, Worker deployment, server URL, or AI API key is required.
+No separate Cloudflare account, Worker deployment, AI server URL, or AI API key is required.
 
 ## Deployment
 
-Deploy the repository normally to Vercel. Configure the existing Supabase and Stripe environment variables when those features are enabled. The AI layer itself needs no provider key.
+Deploy the repository normally to Vercel. Configure the existing Supabase and Stripe environment variables when those features are enabled. The AI layer itself needs no provider configuration.
 
 ## Secrets
 
