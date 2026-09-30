@@ -83,10 +83,18 @@ function buildInput(prompt, context) {
   ].join("\n");
 }
 
+function bodyToken(request) {
+  const header = request.headers.get("authorization") || "";
+  return /^Bearer\s+cb_[A-Za-z0-9_-]{40,80}$/i.test(header) ? header : "";
+}
+
 export default async function handler(request) {
   if (request.method !== "POST") return json({ error: "POST required." }, 405);
 
   try {
+    const token = bodyToken(request);
+    if (!token) return json({ error: "Account token required.", code: "TOKEN_REQUIRED" }, 401);
+
     const body = await request.json();
     const prompt = String(body.prompt || "").trim();
     const model = String(body.model || "auto:coding").trim();
