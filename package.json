@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.3.0",
   "type": "module",
-  "description": "AI coding workspace with GitHub repository context, subscriptions and server-side model routing.",
+  "description": "Local browser AI coding workspace with keyless server-side AI inference.",
   "scripts": {
     "dev": "vercel dev",
     "test": "node scripts/smoke.mjs"
