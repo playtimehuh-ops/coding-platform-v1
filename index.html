@@ -55,7 +55,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
 <header class="topbar">
   <div class="brand"><div class="logo">C</div><div class="brand-name">Codebase</div></div>
   <div class="top-actions">
-    <div class="status" id="status"><i class="status-dot"></i><span>Local</span></div>
+    <div class="status" id="status"><i class="status-dot"></i><span>Ready</span></div>
     <button class="top-btn" id="accountBtn">Account token</button>
     <button class="top-btn" id="plansBtn">Plans</button>
     <button class="top-btn" id="newFileBtn">New file</button>
@@ -175,7 +175,7 @@ function setToken(token){
 function updateAccountStatus(){
   $("status").innerHTML=state.token
     ? '<i class="status-dot"></i><span>Account active</span>'
-    : '<i class="status-dot"></i><span>Local</span>';
+    : '<i class="status-dot"></i><span>Ready</span>';
 }
 
 function closePlans(){
