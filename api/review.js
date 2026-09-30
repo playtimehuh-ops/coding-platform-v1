@@ -70,7 +70,7 @@ export default async function handler(request) {
 
     const result = await freeAI({
       model,
-      maxTokens: 12000,
+      maxTokens: 4000,
       json: true,
       messages: [
         {
