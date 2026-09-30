@@ -51,46 +51,43 @@ button:disabled{cursor:not-allowed;opacity:.48}
 .auth-gate{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 0%,rgba(200,255,74,.055),transparent 42%),#090b0e}.auth-card{width:min(430px,calc(100vw - 26px));padding:26px;border:1px solid #303841;border-radius:14px;background:#0f1317;box-shadow:0 35px 130px rgba(0,0,0,.65)}.auth-brand{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700}.auth-mark{width:28px;height:28px;border:1px solid #42505a;border-radius:7px;display:grid;place-items:center;color:var(--accent);font:600 11px var(--mono);background:#12171d}.auth-copy{margin:22px 0 16px}.auth-copy h1{margin:0 0 6px;font-size:25px;letter-spacing:-.045em}.auth-copy p{margin:0;color:#7d8790;font-size:10px;line-height:1.6}.auth-switch{display:flex;padding:3px;border:1px solid var(--line);border-radius:7px;background:#0b0e12;margin-bottom:13px}.auth-switch button{flex:1;height:28px;border-radius:5px;color:#77828c;font-size:9px}.auth-switch button.active{background:#1a2027;color:#fff}.auth-form{display:grid;gap:9px}.auth-form label{display:block;color:#929ca6;font-size:8px;margin-bottom:4px}.auth-form input{width:100%;height:37px;border:1px solid #333c45;border-radius:7px;background:#0b0f13;padding:0 10px;outline:0;font-size:10px}.auth-form .submit{height:39px;border:1px solid var(--accent);border-radius:7px;background:var(--accent);color:#10130b;font-weight:800;font-size:10px}.auth-note{min-height:24px;color:#68737d;font-size:8px;line-height:1.55}.auth-note.error{color:#ff8484}.auth-note.ok{color:#b9df80}.auth-footer{display:flex;justify-content:space-between;margin-top:9px}.auth-link{color:#7d8790;font-size:8px}.auth-link:hover{color:#fff}.small-btn{height:27px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:#10151a;color:#8f99a3;font-size:8px}.small-btn:hover{color:#fff;background:#171c22}.review-item{margin-top:7px;border:1px solid var(--line);border-radius:7px;background:#0d1115;padding:8px}.review-sev{font:7px var(--mono);text-transform:uppercase;letter-spacing:.08em}.review-sev.high{color:#ff8989}.review-sev.medium{color:#edca70}.review-sev.low{color:#9bb7d0}.review-title{font-size:9px;color:#f0f3f5;margin:3px 0}.review-detail{font-size:8px;color:#89949e;line-height:1.5}.review-path{font:7px var(--mono);color:#65717c;margin-top:4px}</style>
 </head>
 <body>
-<div class="auth-gate" id="authGate"><div class="auth-card"><div class="auth-brand"><div class="auth-mark">C</div> Codebase</div><div class="auth-copy"><h1 id="authTitle">Build with AI.</h1><p id="authSubtitle">Create your Codebase account. Connect GitHub later only when you want the agent to work on a repository.</p></div><div class="auth-switch"><button id="signupMode" class="active">Create account</button><button id="loginMode">Log in</button></div><form class="auth-form" id="authForm" data-mode="signup"><div id="nameWrap"><label for="authName">Name</label><input id="authName" maxlength="80" autocomplete="name" placeholder="Your name"></div><div><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com"></div><div><label for="authPassword">Password</label><input id="authPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters"></div><button class="submit" id="authSubmit" type="submit">Create account</button><div class="auth-note" id="authNote"></div></form><div class="auth-footer"><button class="auth-link" id="forgotBtn">Forgot password?</button><span class="auth-link">AI software engineering</span></div></div></div><div class="app">
+<div class="app">
 <header class="topbar">
   <div class="brand"><div class="logo">C</div><div class="brand-name">Codebase</div></div>
   <div class="top-actions">
-    <div class="status" id="status"><i class="status-dot"></i><span>Offline</span></div>
-    <button class="top-btn" id="plansBtn">Plans</button>
-    <button class="top-btn primary" id="authBtn">Create account</button>
+    <div class="status" id="status"><i class="status-dot"></i><span>Local</span></div>
+    <button class="top-btn" id="openFolderBtn">Open folder</button>
+    <button class="top-btn" id="newFileBtn">New file</button>
   </div>
 </header>
 <main class="workspace">
   <aside class="sidebar">
-    <div class="section-head"><span>Explorer</span><span>⌘ P</span></div>
+    <div class="section-head"><span>Project</span><span>LOCAL</span></div>
     <div class="repo-select">
-      <label>Repository</label>
-      <select id="repoSelect"><option value="">Sign in to load repositories</option></select>
-      <div class="repo-meta" id="repoMeta">Create an account to start.</div><div style="padding:0 10px 10px"><button class="small-btn" id="githubLinkBtn" style="width:100%">Link GitHub to import repositories</button></div>
+      <label>Workspace</label>
+      <div class="repo-meta" id="repoMeta">No project loaded · changes stay in this browser.</div>
+      <div style="padding:10px"><button class="small-btn primary" id="openFolderSideBtn" style="width:100%">Open local folder</button></div>
+      <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
     </div>
-    <div class="tree" id="tree"><div class="empty">Your repositories will appear here after GitHub sign-in.</div></div>
-    <div class="side-bottom">
-      <div class="usage"><span>Monthly agent use</span><span id="usageText">0 / 20</span></div>
-      <div class="usage-bar"><span id="usageBar"></span></div>
-    </div>
+    <div class="tree" id="tree"><div class="empty">Open a local project folder.<br>No account. No GitHub connection.</div></div>
   </aside>
 
   <section class="editor">
     <div class="tabs" id="tabs"></div>
-    <div class="code-area"><div class="gutter" id="gutter"></div><pre class="source" id="source"></pre></div>
+    <div class="code-area"><div class="gutter" id="gutter"></div><pre class="source" id="source" contenteditable="true" spellcheck="false"></pre></div>
     <div class="terminal">
-      <div class="term-head"><button class="term-tab active">TERMINAL</button><button class="term-tab">PROBLEMS <span id="problemCount">0</span></button><button class="term-tab">ACTIVITY</button><div class="toolbar"><button id="copyFileBtn">Copy</button><button id="downloadFileBtn">Download file</button><button id="downloadRepoBtn">Download repo</button></div></div>
-      <div class="term-body" id="terminal"><div><span class="term-warn">•</span> Create an account, then link GitHub to start a coding session.</div></div>
+      <div class="term-head"><button class="term-tab active">LOCAL</button><button class="term-tab">ACTIVITY</button><div class="toolbar"><button id="saveFileBtn">Save file</button><button id="downloadFileBtn">Download file</button><button id="exportProjectBtn">Export project</button></div></div>
+      <div class="term-body" id="terminal"><div><span class="term-ok">•</span> Local workspace ready. Files never need to leave your browser except the context you explicitly send to the AI.</div></div>
     </div>
   </section>
 
   <aside class="agent">
     <div class="ai-head">
       <div class="ai-title"><div class="ai-mark">AI</div><span>Code Agent</span></div>
-      <div style="display:flex;gap:5px;align-items:center"><button class="small-btn" id="reviewBtn">Review</button><select class="model-select" id="modelSelect" aria-label="AI model"><option value="auto:coding">Free · Coding</option><option value="auto">Free · Auto</option><option value="auto:smart">Free · Smart</option><option value="auto:fast">Free · Fast</option></select></div>
+      <div style="display:flex;gap:5px;align-items:center"><button class="small-btn" id="reviewBtn">Review</button><select class="model-select" id="modelSelect"><option value="auto:coding">Free · Coding</option><option value="auto">Free · Auto</option><option value="auto:smart">Free · Smart</option><option value="auto:fast">Free · Fast</option></select></div>
     </div>
     <div class="chat" id="chat">
-      <div class="empty">A focused coding agent.<br>Ask for a feature, bug fix, refactor, test, or explanation.</div>
+      <div class="empty">A local coding agent.<br>Open a folder, then ask for a feature, bug fix, refactor, test, or explanation.</div>
     </div>
     <div class="composer">
       <div class="composer-box">
@@ -104,264 +101,57 @@ button:disabled{cursor:not-allowed;opacity:.48}
   </aside>
 </main>
 </div>
+<div class="toast" id="toast"></div>
 
-<div class="overlay" id="plansOverlay">
-  <div class="modal">
-    <div class="modal-head"><div><div class="modal-title">Plans</div><div class="modal-sub">Usage and model access are controlled server-side.</div></div><button class="icon-btn" id="closePlans">×</button></div>
-    <div class="modal-body"><div class="plans" id="plans"></div></div>
-  </div>
-</div>
-<div class="overlay" id="accountOverlay"><div class="modal"><div class="modal-head"><div><div class="modal-title">Account</div><div class="modal-sub" id="accountSub">Your Codebase account</div></div><button class="icon-btn" id="closeAccount">Close</button></div><div class="modal-body"><div style="display:grid;grid-template-columns:1fr 1fr;gap:9px"><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Profile</div><form id="profileForm" style="display:grid;gap:7px;margin-top:8px"><input id="profileName" style="height:34px;border:1px solid var(--line);border-radius:6px;background:#0b0f13;padding:0 8px;font-size:9px" maxlength="80"><button class="small-btn">Save profile</button></form></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Password</div><form id="passwordForm" style="display:grid;gap:7px;margin-top:8px"><input id="newPassword" type="password" minlength="8" style="height:34px;border:1px solid var(--line);border-radius:6px;background:#0b0f13;padding:0 8px;font-size:9px" placeholder="New password"><button class="small-btn">Change password</button></form></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">GitHub</div><p id="githubAccountText" style="color:#7f8993;font-size:8px;line-height:1.5">Not linked.</p><button class="small-btn" id="manageGithub" style="width:100%;margin-top:6px">Link GitHub</button></div><div style="border:1px solid var(--line);border-radius:8px;background:#0d1115;padding:11px"><div class="modal-title">Billing</div><p id="billingText" style="color:#7f8993;font-size:8px;line-height:1.5">No subscription.</p><button class="small-btn" id="manageBilling" style="width:100%;margin-top:6px">Manage billing</button></div></div><button class="small-btn" id="logoutBtn" style="margin-top:10px;width:100%">Log out</button></div></div></div><div class="toast" id="toast"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const state={user:null,plan:"free",used:0,repo:"",repos:[],context:null,activeFile:null,github:null};
-
 const $=id=>document.getElementById(id);
+const state={
+  files:[],
+  activeFile:null,
+  model:"auto:coding",
+  projectName:"Local project"
+};
 
 function escapeHtml(value){
-  return String(value??"").replace(/[&<>"']/g,ch=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",
-    '"':"&quot;","'":"&#39;"
-  }[ch]));
+  return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[ch]));
 }
 
 function toast(message){
   const el=$("toast");
   el.textContent=message;
   el.classList.add("show");
-  clearTimeout(window.__toast);
-  window.__toast=setTimeout(()=>el.classList.remove("show"),2200);
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer=setTimeout(()=>el.classList.remove("show"),2600);
 }
 
-function log(message,tone){
+function log(message,type){
   const el=document.createElement("div");
-  el.innerHTML=(tone==="ok"?'<span class="term-ok">✓</span> ':tone==="warn"?'<span class="term-warn">•</span> ':'')+escapeHtml(message);
+  el.innerHTML='<span class="'+(type==="warn"?"term-warn":"term-ok")+'">•</span> '+escapeHtml(message);
   $("terminal").appendChild(el);
   $("terminal").scrollTop=$("terminal").scrollHeight;
 }
 
-function openOverlay(id){$(id).style.display="flex"}
-function closeOverlay(id){$(id).style.display="none"}
-
-async function authRequest(action,payload){
-  const res=await fetch("/api/auth?action="+encodeURIComponent(action),{
-    method:"POST",credentials:"same-origin",
-    headers:{"content-type":"application/json"},
-    body:JSON.stringify(payload||{})
-  });
-  const data=await res.json().catch(()=>({}));
-  if(!res.ok)throw new Error(data.error||"Authentication failed.");
-  return data;
-}
-
-function setAuthMode(mode){
-  const signup=mode==="signup";
-  const recovery=mode==="recovery";
-  $("authForm").dataset.mode=mode;
-  $("signupMode").classList.toggle("active",signup);
-  $("loginMode").classList.toggle("active",!signup && !recovery);
-  $("signupMode").style.display=recovery?"none":"block";
-  $("loginMode").style.display=recovery?"none":"block";
-  $("nameWrap").style.display=signup?"block":"none";
-  $("authEmail").style.display=recovery?"none":"block";
-  $("authEmail").required=!recovery;
-  $("authPassword").setAttribute("autocomplete",recovery?"new-password":signup?"new-password":"current-password");
-  $("authTitle").textContent=recovery?"Choose a new password":signup?"Build with AI.":"Welcome back.";
-  $("authSubtitle").textContent=recovery?"Set a new password for your Codebase account.":signup?"Create your Codebase account. GitHub is an optional repository integration.":"Log in to continue your coding workspace.";
-  $("authSubmit").textContent=recovery?"Set password":signup?"Create account":"Log in";
-  $("forgotBtn").style.visibility=signup||recovery?"hidden":"visible";
-  $("authNote").textContent="";
-  $("authNote").className="auth-note";
-}
-
-async function submitAuth(event){
-  event.preventDefault();
-  const mode=$("authForm").dataset.mode||"signup";
-  const note=$("authNote"),button=$("authSubmit");
-  button.disabled=true;
-  note.textContent="Working…";
-  note.className="auth-note";
-  try{
-    if(mode==="recovery"){
-      await authRequest("recover",{access_token:state.recovery.accessToken,refresh_token:state.recovery.refreshToken,newPassword:$("authPassword").value});
-      history.replaceState({},document.title,location.pathname+location.search);
-      state.recovery=null;
-      await refreshSession();
-      toast("Password updated.");
-      return;
-    }
-
-    const payload={email:$("authEmail").value.trim(),password:$("authPassword").value};
-    if(mode==="signup")payload.name=$("authName").value.trim();
-    const data=await authRequest(mode,payload);
-    await syncBrowserSupabase(data.session);
-    if(data.requiresConfirmation){
-      note.textContent=data.message||"Check your email to verify your account.";
-      note.className="auth-note ok";
-      $("authEmail").value=payload.email;
-      setAuthMode("login");
-      return;
-    }
-    await refreshSession();
-    toast("Account ready.");
-  }catch(error){
-    note.textContent=error.message||"Authentication failed.";
-    note.className="auth-note error";
-  }finally{button.disabled=false}
-}
-
-async function handleAuthRedirect(){
-  const hash=new URLSearchParams(location.hash.replace(/^#/,""));
-  const accessToken=hash.get("access_token");
-  if(!accessToken)return false;
-  const refreshToken=hash.get("refresh_token")||"";
-  const type=hash.get("type")||"";
-  try{
-    if(type==="recovery"){
-      state.recovery={accessToken,refreshToken};
-      setAuthMode("recovery");
-      $("authGate").style.display="flex";
-      $("authNote").textContent="Choose a new password.";
-      $("authNote").className="auth-note ok";
-    }else{
-      const data=await authRequest("complete",{access_token:accessToken,refresh_token:refreshToken});
-      await syncBrowserSupabase(data.session);
-      history.replaceState({},document.title,location.pathname+location.search);
-      toast("Email verified.");
-      await refreshSession();
-    }
-    return true;
-  }catch(error){
-    $("authNote").textContent=error.message||"Could not complete authentication.";
-    $("authNote").className="auth-note error";
-    return false;
-  }
-}
-
-$("authForm").addEventListener("submit",submitAuth);
-$("signupMode").onclick=()=>setAuthMode("signup");
-$("loginMode").onclick=()=>setAuthMode("login");
-$("forgotBtn").onclick=async()=>{
-  const email=$("authEmail").value.trim(),note=$("authNote");
-  if(!email){note.textContent="Enter your email first.";note.className="auth-note error";return}
-  try{
-    const data=await authRequest("forgot",{email});
-    note.textContent=data.message||"Check your email.";
-    note.className="auth-note ok";
-  }catch(error){
-    note.textContent=error.message;
-    note.className="auth-note error";
-  }
-};
-
-async function refreshSession(){
-  const res=await fetch("/api/auth?action=me",{credentials:"same-origin"});
-  const data=await res.json();
-  state.user=data.authenticated?data.user:null;
-
-  if(!state.user){
-    $("authGate").style.display="flex";
-    $("authBtn").className="top-btn primary";
-    $("authBtn").textContent="Create account";
-    $("authBtn").onclick=()=>{setAuthMode("signup");openOverlay("authGate")};
-    $("status").innerHTML='<i></i><span>Signed out</span>';
-    return;
-  }
-
-  $("authGate").style.display="none";
-  $("authBtn").className="account";
-  $("authBtn").innerHTML="<span>"+escapeHtml(state.user.name||state.user.email)+"</span>";
-  $("authBtn").onclick=()=>openOverlay("accountOverlay");
-  $("status").innerHTML='<i></i><span>Signed in</span>';
-  await loadAccount();
-  await loadGithubStatus();
-}
-
-async function loadAccount(){
-  const res=await fetch("/api/account",{credentials:"same-origin"});
-  const data=await res.json();
-  if(!data.authenticated)return;
-  state.plan=data.plan||"free";
-  state.used=data.usage?.used||0;
-  updateUsage();
-  if($("profileName"))$("profileName").value=data.user?.name||"";
-  if($("accountSub"))$("accountSub").textContent=(data.user?.email||"")+" · "+state.plan;
-  if($("billingText"))$("billingText").textContent=data.subscription?.status?
-    "Subscription: "+data.subscription.status:
-    "No active subscription.";
-}
-
-async function loadGithubStatus(){
-  const res=await fetch("/api/github-link?action=status",{credentials:"same-origin"});
-  const data=await res.json();
-  state.github=data.connected?data.github:null;
-
-  if(state.github){
-    $("githubLinkBtn").textContent="Linked · @"+state.github.login;
-    $("githubAccountText").textContent="Connected as @"+state.github.login;
-    $("manageGithub").textContent="Reconnect GitHub";
-    await loadRepos();
-  }else{
-    $("githubLinkBtn").textContent="Link GitHub";
-    $("githubAccountText").textContent="Not linked. Link GitHub to import repositories.";
-    $("manageGithub").textContent="Link GitHub";
-    $("repoSelect").innerHTML='<option value="">Link GitHub to begin</option>';
-    $("repoMeta").textContent="GitHub not linked";
-    $("tree").innerHTML='<div class="empty">Your Codebase account is ready.<br>Link GitHub to load repositories.</div>';
-  }
-}
-
-async function loadRepos(){
-  const res=await fetch("/api/github",{
-    method:"POST",credentials:"same-origin",
-    headers:{"content-type":"application/json"},
-    body:JSON.stringify({action:"repos"})
-  });
-  const data=await res.json();
-  if(!res.ok)throw new Error(data.error||"Could not load repositories.");
-  state.repos=data.repositories||[];
-  $("repoSelect").innerHTML=state.repos.length?
-    state.repos.map(r=>'<option value="'+escapeHtml(r.full_name)+'">'+escapeHtml(r.full_name)+(r.private?" · private":"")+"</option>").join(""):
-    '<option value="">No repositories found</option>';
-  if(state.repos.length){
-    state.repo=state.repos[0].full_name;
-    $("repoSelect").value=state.repo;
-    await loadRepo(state.repo);
-  }
-}
-
-async function loadRepo(repo){
-  if(!repo)return;
-  state.repo=repo;
-  state.context=null;
-  state.activeFile=null;
-  $("repoMeta").textContent="Reading repository…";
-  $("tree").innerHTML='<div class="empty">Indexing repository…</div>';
-  log("Reading "+repo+"…");
-  const res=await fetch("/api/github",{
-    method:"POST",credentials:"same-origin",
-    headers:{"content-type":"application/json"},
-    body:JSON.stringify({action:"context",repo,maxFiles:40})
-  });
-  const data=await res.json();
-  if(!res.ok)throw new Error(data.error||"Could not read repository.");
-  state.context=data;
-  $("repoMeta").textContent=data.branch+" · "+(data.language||"mixed")+" · "+data.files.length+" files";
-  state.activeFile=data.files.find(f=>f.path==="README.md")||data.files.find(f=>f.path==="package.json")||data.files[0]||null;
-  renderTree();
-  renderCode();
-  log(data.files.length+" files loaded · "+(data.context_chars||0)+" context chars","ok");
+function normalizeFile(file,path){
+  return {
+    path,
+    sha:"",
+    size:file.size||0,
+    content:""
+  };
 }
 
 function renderTree(){
-  if(!state.context)return;
-  $("tree").innerHTML=state.context.files.map(file=>{
+  if(!state.files.length){
+    $("tree").innerHTML='<div class="empty">Open a local project folder.<br>No account. No GitHub connection.</div>';
+    return;
+  }
+  $("tree").innerHTML=state.files.map(file=>{
     const ext=(file.path.split(".").pop()||"file").slice(0,2).toUpperCase();
-    return '<button class="tree-row '+(state.activeFile?.path===file.path?"active":"")+'" data-path="'+escapeHtml(file.path)+'"><span class="tree-icon">'+escapeHtml(ext)+"</span><span class="tree-name">"+escapeHtml(file.path)+"</span></button>";
+    return '<button class="tree-row '+(state.activeFile?.path===file.path?"active":"")+'" data-path="'+escapeHtml(file.path)+'"><span class="tree-icon">'+escapeHtml(ext)+'</span><span class="tree-name">'+escapeHtml(file.path)+'</span></button>';
   }).join("");
   document.querySelectorAll(".tree-row").forEach(row=>row.onclick=()=>{
-    state.activeFile=state.context.files.find(f=>f.path===row.dataset.path)||null;
+    saveActiveFile();
+    state.activeFile=state.files.find(f=>f.path===row.dataset.path)||null;
     renderTree();
     renderCode();
   });
@@ -369,24 +159,113 @@ function renderTree(){
 
 function renderCode(){
   if(!state.activeFile){
-    $("source").textContent="// Select a file to inspect it.";
+    $("source").textContent="// Open a project folder to begin.";
     $("gutter").textContent="1";
     $("tabs").innerHTML="";
     return;
   }
-  $("source").textContent=state.activeFile.content;
-  $("gutter").textContent=state.activeFile.content.split("\n").map((_,i)=>i+1).join("\n");
-  $("tabs").innerHTML='<div class="tab active">'+escapeHtml(state.activeFile.path)+"</div>";
+  $("source").textContent=state.activeFile.content||"";
+  $("gutter").textContent=String(state.activeFile.content||"").split("\n").map((_,i)=>i+1).join("\n");
+  $("tabs").innerHTML='<div class="tab active">'+escapeHtml(state.activeFile.path)+'</div>';
 }
 
-function addMessage(who,text){
-  const el=document.createElement("div");
-  el.className="msg";
-  el.innerHTML='<div class="msg-head"><div class="avatar '+(who==="AI"?"ai":"you")+'">'+who+'</div>'+who+'<span class="msg-time">· now</span></div><div class="msg-body"></div>';
-  el.querySelector(".msg-body").textContent=text;
-  $("chat").appendChild(el);
-  $("chat").scrollTop=$("chat").scrollHeight;
-  return el;
+function saveActiveFile(){
+  if(!state.activeFile)return;
+  state.activeFile.content=$("source").innerText||$("source").textContent||"";
+  state.activeFile.size=state.activeFile.content.length;
+  saveWorkspace();
+  renderCode();
+}
+
+function saveWorkspace(){
+  try{
+    localStorage.setItem("codebase-local-project",JSON.stringify({
+      projectName:state.projectName,
+      files:state.files
+    }));
+  }catch{}
+}
+
+function restoreWorkspace(){
+  try{
+    const raw=localStorage.getItem("codebase-local-project");
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    if(!Array.isArray(data.files)||!data.files.length)return;
+    state.projectName=String(data.projectName||"Local project");
+    state.files=data.files.filter(f=>f&&typeof f.path==="string"&&typeof f.content==="string");
+    state.activeFile=state.files[0]||null;
+    $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · local only";
+    renderTree();
+    renderCode();
+    log("Restored local workspace.","ok");
+  }catch{}
+}
+
+async function openFolder(){
+  if(window.showDirectoryPicker){
+    try{
+      const handle=await window.showDirectoryPicker();
+      const files=[];
+      async function walk(dir,prefix){
+        for await(const entry of dir.values()){
+          const path=prefix?prefix+"/"+entry.name:entry.name;
+          if(entry.kind==="directory"){
+            if(["node_modules",".git","dist","build","coverage",".next"].includes(entry.name))continue;
+            await walk(entry,path);
+          }else if(entry.kind==="file"){
+            if(!/\.(js|jsx|ts|tsx|json|html|css|scss|md|py|go|rs|java|php|rb|vue|svelte|yml|yaml|sql|sh|txt)$/i.test(entry.name))continue;
+            try{
+              const file=await entry.getFile();
+              const text=await file.text();
+              files.push({path,sha:"",size:text.length,content:text.slice(0,120000)});
+            }catch{}
+          }
+        }
+      }
+      await walk(handle,"");
+      state.projectName=handle.name||"Local project";
+      state.files=files.slice(0,80);
+      state.activeFile=state.files[0]||null;
+      $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · local only";
+      renderTree();
+      renderCode();
+      saveWorkspace();
+      log("Loaded "+state.files.length+" source files from "+state.projectName+".","ok");
+      return;
+    }catch(error){
+      if(error?.name==="AbortError")return;
+      toast(error.message||"Could not open the folder.");
+    }
+  }
+  $("folderInput").click();
+}
+
+$("folderInput").addEventListener("change",async e=>{
+  const files=[];
+  for(const file of Array.from(e.target.files||[]).slice(0,80)){
+    if(!/\.(js|jsx|ts|tsx|json|html|css|scss|md|py|go|rs|java|php|rb|vue|svelte|yml|yaml|sql|sh|txt)$/i.test(file.name))continue;
+    const text=await file.text().catch(()=> "");
+    files.push({path:file.webkitRelativePath||file.name,sha:"",size:text.length,content:text.slice(0,120000)});
+  }
+  if(!files.length){toast("No supported source files found.");return}
+  state.projectName=(e.target.files?.[0]?.webkitRelativePath||"Local project").split("/")[0]||"Local project";
+  state.files=files;
+  state.activeFile=state.files[0]||null;
+  $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · local only";
+  renderTree();
+  renderCode();
+  saveWorkspace();
+  log("Loaded "+state.files.length+" source files.","ok");
+});
+
+function currentContext(){
+  saveActiveFile();
+  return state.files.map(file=>({
+    path:file.path,
+    sha:file.sha||"",
+    content:String(file.content||"").slice(0,8000)
+  })).slice(0,80);
 }
 
 function simpleDiff(before,after){
@@ -399,34 +278,28 @@ function simpleDiff(before,after){
   return rows.join("\n");
 }
 
-function downloadText(filename,text,mime){
-  const url=URL.createObjectURL(new Blob([text],{type:mime||"text/plain"}));
-  const a=document.createElement("a");
-  a.href=url;a.download=filename;
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-
-function downloadPatch(changes){
-  const patch=(changes||[]).map(change=>{
-    const before=state.context?.files.find(f=>f.path===change.path)?.content||"";
-    return "diff --git a/"+change.path+" b/"+change.path+"\n"+simpleDiff(before,change.content);
-  }).join("\n\n");
-  downloadText("codebase-ai.patch",patch,"text/x-diff");
+function addMessage(who,text){
+  const el=document.createElement("div");
+  el.className="msg";
+  el.innerHTML='<div class="msg-head"><div class="avatar '+(who==="AI"?"ai":"you")+'">'+who+'</div>'+who+'<span class="msg-time">· now</span></div><div class="msg-body"></div>';
+  el.querySelector(".msg-body").textContent=text;
+  $("chat").appendChild(el);
+  $("chat").scrollTop=$("chat").scrollHeight;
+  return el;
 }
 
 function addAgentResult(data){
   const el=document.createElement("div");
   el.className="msg";
-  let html='<div class="msg-head"><div class="avatar ai">AI</div>Code Agent<span class="msg-time">· now</span></div><div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Task analyzed.")+"</strong></p>";
+  let html='<div class="msg-head"><div class="avatar ai">AI</div>Code Agent<span class="msg-time">· now</span></div><div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Task analyzed.")+'</strong></p>';
   if(data.rationale)html+="<p>"+escapeHtml(data.rationale)+"</p>";
   if(data.tests?.length)html+='<div class="meta-line">Suggested checks</div>'+data.tests.map(t=>"<p>• "+escapeHtml(t)+"</p>").join("");
   for(let i=0;i<(data.changes||[]).length;i++){
     const change=data.changes[i];
-    const before=state.context?.files.find(f=>f.path===change.path)?.content||"";
-    html+='<div class="change"><div class="change-head"><span>'+escapeHtml(change.path)+'</span><span>proposed</span></div><pre class="diff">'+escapeHtml(simpleDiff(before,change.content))+'</pre><div class="actions"><button class="mini apply one">Apply</button></div></div>';
+    const before=state.files.find(f=>f.path===change.path)?.content||"";
+    html+='<div class="change"><div class="change-head"><span>'+escapeHtml(change.path)+'</span><span>proposed</span></div><pre class="diff">'+escapeHtml(simpleDiff(before,change.content))+'</pre><div class="actions"><button class="mini apply one">Apply locally</button></div></div>';
   }
-  if(data.changes?.length)html+='<div class="actions"><button class="mini download-patch">Download patch</button><button class="mini apply all">Apply all</button></div>';
+  if(data.changes?.length)html+='<div class="actions"><button class="mini download-patch">Download patch</button><button class="mini apply all">Apply all locally</button></div>';
   else html+='<div class="meta-line">No file changes proposed.</div>';
   html+="</div>";
   el.innerHTML=html;
@@ -438,30 +311,64 @@ function addAgentResult(data){
   el.querySelector(".download-patch")?.addEventListener("click",()=>downloadPatch(data.changes));
 }
 
+function applyChanges(changes){
+  for(const change of changes||[]){
+    const existing=state.files.find(file=>file.path===change.path);
+    if(existing){
+      existing.content=String(change.content||"");
+      existing.size=existing.content.length;
+    }else{
+      state.files.push({path:change.path,sha:"",size:String(change.content||"").length,content:String(change.content||"")});
+    }
+  }
+  state.activeFile=state.files.find(f=>f.path===state.activeFile?.path)||state.files[0]||null;
+  saveWorkspace();
+  renderTree();
+  renderCode();
+  log("Applied "+(changes?.length||0)+" change(s) locally.","ok");
+  toast("Changes applied locally.");
+}
+
+function downloadText(filename,text,mime){
+  const url=URL.createObjectURL(new Blob([text],{type:mime||"text/plain"}));
+  const a=document.createElement("a");
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function downloadPatch(changes){
+  const patch=(changes||[]).map(change=>{
+    const before=state.files.find(f=>f.path===change.path)?.content||"";
+    return "diff --git a/"+change.path+" b/"+change.path+"\n"+simpleDiff(before,change.content);
+  }).join("\n\n");
+  downloadText("codebase-local.patch",patch,"text/x-diff");
+}
+
 async function send(){
   const prompt=$("prompt").value.trim();
   if(!prompt)return;
-  if(!state.user){openOverlay("authGate");return}
-  if(!state.repo){toast("Link GitHub and choose a repository.");return}
+  saveActiveFile();
+  const files=currentContext();
+  if(!files.length){
+    toast("Open a local project folder first.");
+    return;
+  }
   $("prompt").value="";
   addMessage("YOU",prompt);
-  const thinking=addMessage("AI","Inspecting the repository and planning the change…");
+  const thinking=addMessage("AI","Inspecting the local project and planning the change…");
   $("sendBtn").disabled=true;
-  log("Agent task: "+prompt);
   try{
     const res=await fetch("/api/chat",{
-      method:"POST",credentials:"same-origin",
+      method:"POST",
       headers:{"content-type":"application/json"},
-      body:JSON.stringify({prompt,repo:state.repo,model:$("modelSelect")?.value||"auto:coding"})
+      body:JSON.stringify({prompt,model:$("modelSelect").value||"auto:coding",context:{repository:state.projectName,branch:"local",language:"mixed",description:"Local browser workspace",files}})
     });
     const data=await res.json();
     thinking.remove();
     if(!res.ok)throw new Error(data.error||"The coding agent failed.");
-    state.used=data.usage?.used??state.used;
-    state.plan=data.plan||state.plan;
-    updateUsage();
     addAgentResult(data);
-    log("Proposal ready — waiting for approval","ok");
+    log("AI proposal ready.","ok");
   }catch(error){
     thinking.remove();
     addMessage("AI",error.message||"The coding agent failed.");
@@ -469,230 +376,97 @@ async function send(){
   }finally{$("sendBtn").disabled=false}
 }
 
-async function applyChanges(changes){
-  if(!changes?.length||!state.repo||!state.context)return;
-  addMessage("AI","Creating a review branch and Pull Request…");
-  log("Creating review branch…");
-  try{
-    const res=await fetch("/api/github",{
-      method:"POST",credentials:"same-origin",
-      headers:{"content-type":"application/json"},
-      body:JSON.stringify({
-        action:"apply",repo:state.repo,base:state.context.branch,
-        changes,title:"Codebase AI changes",
-        message:"feat: apply AI coding changes",
-        description:"Changes proposed and explicitly approved in Codebase."
-      })
-    });
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error||"Could not apply changes.");
-    log("Branch "+data.branch+" created","ok");
-    if(data.pull_request?.url){
-      const el=addMessage("AI","Pull request #"+data.pull_request.number+" is ready for review.");
-      const link=document.createElement("a");
-      link.href=data.pull_request.url;link.target="_blank";link.rel="noopener";
-      link.textContent="Open pull request";
-      link.style.cssText="display:block;margin-top:6px;color:#c8ff4a;font-size:9px";
-      el.querySelector(".msg-body").appendChild(link);
-    }
-    toast("Pull request created.");
-    await loadRepo(state.repo);
-  }catch(error){
-    toast(error.message);
-    log(error.message,"warn");
-  }
-}
-
 async function runReview(){
-  if(!state.repo){toast("Choose a repository first.");return}
+  saveActiveFile();
+  const files=currentContext();
+  if(!files.length){toast("Open a local project folder first.");return}
   $("reviewBtn").disabled=true;
-  addMessage("AI","Reviewing the repository for concrete bugs and risks…");
+  addMessage("AI","Reviewing the local project…");
   try{
     const res=await fetch("/api/review",{
-      method:"POST",credentials:"same-origin",
+      method:"POST",
       headers:{"content-type":"application/json"},
-      body:JSON.stringify({repo:state.repo,model:$("modelSelect")?.value||"auto:coding"})
+      body:JSON.stringify({model:$("modelSelect").value||"auto:coding",context:{repository:state.projectName,branch:"local",files}})
     });
     const data=await res.json();
     if(!res.ok)throw new Error(data.error||"Code review failed.");
-    state.used=data.usage?.used??state.used;
-    state.plan=data.plan||state.plan;
-    updateUsage();
-    const el=document.createElement("div");el.className="msg";
-    let html='<div class="msg-head"><div class="avatar ai">AI</div>Code Review<span class="msg-time">· now</span></div><div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Review complete.")+"</strong></p>";
-    if(data.findings?.length){
-      html+=data.findings.map(f=>'<div class="review-item"><div class="review-sev '+escapeHtml(f.severity)+'">'+escapeHtml(f.severity)+'</div><div class="review-title">'+escapeHtml(f.title)+'</div><div class="review-detail">'+escapeHtml(f.detail)+'</div><div class="review-path">'+escapeHtml(f.path)+'</div></div>').join("");
-    }else html+='<div class="meta-line">No concrete findings returned.</div>';
-    html+="</div>";el.innerHTML=html;$("chat").appendChild(el);$("chat").scrollTop=$("chat").scrollHeight;log("Review complete","ok");
+    const el=document.createElement("div");
+    el.className="msg";
+    let html='<div class="msg-head"><div class="avatar ai">AI</div>Code Review<span class="msg-time">· now</span></div><div class="msg-body"><p><strong>'+escapeHtml(data.summary||"Review complete.")+'</strong></p>';
+    if(data.findings?.length)html+=data.findings.map(f=>'<div class="review-item"><div class="review-sev '+escapeHtml(f.severity||"low")+'">'+escapeHtml(f.severity||"low")+'</div><div class="review-title">'+escapeHtml(f.title||"Finding")+'</div><div class="review-detail">'+escapeHtml(f.detail||"")+'</div><div class="review-path">'+escapeHtml(f.path||"")+'</div></div>').join("");
+    else html+='<div class="meta-line">No concrete findings returned.</div>';
+    html+="</div>";
+    el.innerHTML=html;
+    $("chat").appendChild(el);
+    $("chat").scrollTop=$("chat").scrollHeight;
+    log("Review complete.","ok");
   }catch(error){toast(error.message);log(error.message,"warn")}
   finally{$("reviewBtn").disabled=false}
 }
 
-async function loadPlans(){
-  const res=await fetch("/api/billing",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"catalog"})});
-  const data=await res.json();
-  $("plans").innerHTML=Object.values(data.plans||{}).map(plan=>{
-    const featured=plan.id==="builder";
-    return '<div class="plan '+(featured?"featured":"")+'"><h3>'+escapeHtml(plan.name)+'</h3><div class="price">$'+plan.price+'<small>/mo</small></div><p>'+plan.runs.toLocaleString()+" agent runs per month.</p><ul><li>"+plan.contextFiles+" files in context</li><li>"+plan.privateRepos+" repositories</li><li>"+escapeHtml(plan.models.join(", "))+" routing</li></ul><button class=""+(featured?"primary ":"")+'plan-choice" data-plan="'+escapeHtml(plan.id)+'">'+(plan.price?"Choose "+escapeHtml(plan.name):"Current plan")+"</button></div>";
-  }).join("");
-  $("plans").querySelectorAll(".plan-choice").forEach(button=>button.onclick=async()=>{
-    const plan=button.dataset.plan;
-    if(plan==="free")return;
-    if(!state.user){closeOverlay("plansOverlay");openOverlay("authGate");return}
-    button.disabled=true;
-    try{
-      const res=await fetch("/api/billing",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({action:"checkout",plan})});
-      const data=await res.json();
-      if(!res.ok)throw new Error(data.error||"Checkout is not configured.");
-      location.href=data.url;
-    }catch(error){button.disabled=false;toast(error.message)}
-  });
+function newFile(){
+  const path=prompt("File name (for example src/app.js):");
+  if(!path)return;
+  if(state.files.some(f=>f.path===path)){toast("That file already exists.");return}
+  state.files.push({path,sha:"",size:0,content:""});
+  state.activeFile=state.files[state.files.length-1];
+  saveWorkspace();
+  renderTree();
+  renderCode();
+  log("Created "+path+" locally.","ok");
 }
 
-$("repoSelect").onchange=()=>loadRepo($("repoSelect").value).catch(e=>toast(e.message));
-$("githubLinkBtn").onclick=()=>linkGithub();
-$("manageGithub").onclick=()=>linkGithub();
+function exportProject(){
+  saveActiveFile();
+  const payload={
+    format:"codebase-local-project",
+    projectName:state.projectName,
+    exportedAt:new Date().toISOString(),
+    files:state.files.map(f=>({path:f.path,content:f.content}))
+  };
+  downloadText("codebase-project.json",JSON.stringify(payload,null,2),"application/json");
+}
 
-$("copyFileBtn").onclick=async()=>{if(!state.activeFile)return;try{await navigator.clipboard.writeText(state.activeFile.content);toast("File copied.")}catch{toast("Clipboard unavailable.")}};
-$("downloadFileBtn").onclick=()=>{if(!state.activeFile||!state.repo||!state.context)return;const a=document.createElement("a");a.href="/api/download?action=file&repo="+encodeURIComponent(state.repo)+"&path="+encodeURIComponent(state.activeFile.path)+"&branch="+encodeURIComponent(state.context.branch);document.body.appendChild(a);a.click();a.remove()};
-$("downloadRepoBtn").onclick=()=>{if(!state.repo||!state.context)return;const a=document.createElement("a");a.href="/api/download?action=repo&repo="+encodeURIComponent(state.repo)+"&branch="+encodeURIComponent(state.context.branch);document.body.appendChild(a);a.click();a.remove()};
+$("openFolderBtn").onclick=openFolder;
+$("openFolderSideBtn").onclick=openFolder;
+$("newFileBtn").onclick=newFile;
+$("saveFileBtn").onclick=()=>{saveActiveFile();toast("File saved locally.")};
+$("downloadFileBtn").onclick=()=>{
+  if(!state.activeFile){toast("Select a file first.");return}
+  saveActiveFile();
+  downloadText(state.activeFile.path.split("/").pop()||"file.txt",state.activeFile.content,"text/plain");
+};
+$("exportProjectBtn").onclick=exportProject;
 $("sendBtn").onclick=send;
+$("reviewBtn").onclick=runReview;
+$("modelSelect").onchange=()=>{state.model=$("modelSelect").value;};
 $("prompt").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")send()});
-document.querySelectorAll(".command").forEach(b=>{
-  b.onclick=()=>{
-    $("prompt").value=b.textContent.trim()+" ";
+document.querySelectorAll(".command").forEach(button=>{
+  button.onclick=()=>{
+    $("prompt").value=button.textContent.trim()+" ";
     $("prompt").focus();
   };
 });
-$("reviewBtn").onclick=runReview;
-$("plansBtn").onclick=()=>{openOverlay("plansOverlay");loadPlans().catch(e=>toast(e.message))};
-$("closePlans").onclick=()=>closeOverlay("plansOverlay");
-$("closeAccount").onclick=()=>closeOverlay("accountOverlay");
-$("plansOverlay").onclick=e=>{if(e.target.id==="plansOverlay")closeOverlay("plansOverlay")};
-$("accountOverlay").onclick=e=>{if(e.target.id==="accountOverlay")closeOverlay("accountOverlay")};
-
-$("profileForm").onsubmit=async e=>{
-  e.preventDefault();
-  try{
-    const data=await authRequest("update",{name:$("profileName").value.trim()});
-    if(data.user)state.user=data.user;
-    toast("Profile saved.");
-    closeOverlay("accountOverlay");
-  }catch(error){toast(error.message)}
-};
-
-$("passwordForm").onsubmit=async e=>{
-  e.preventDefault();
-  const password=$("newPassword").value;
-  if(!password)return;
-  try{
-    await authRequest("update",{password});
-    $("newPassword").value="";
-    toast("Password changed.");
-  }catch(error){toast(error.message)}
-};
-
-$("manageBilling").onclick=async()=>{
-  try{
-    const res=await fetch("/api/billing",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({action:"portal"})});
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error||"Billing portal unavailable.");
-    location.href=data.url;
-  }catch(error){toast(error.message)}
-};
-
-$("logoutBtn").onclick=async()=>{
-  try{await authRequest("logout",{});}finally{location.reload()}
-};
-
-setAuthMode("signup");
-handleAuthRedirect().finally(()=>{if(!state.recovery)refreshSession().catch(error=>toast(error.message));});
-
-let supabaseBrowser=null;
-
-async function ensureSupabaseBrowser(){
-  if(supabaseBrowser)return supabaseBrowser;
-  const res=await fetch("/api/config");
-  const config=await res.json();
-  if(!config.supabaseUrl||!config.supabasePublishableKey)throw new Error("Supabase public configuration is missing.");
-  if(!window.supabase?.createClient)throw new Error("Supabase client failed to load.");
-  supabaseBrowser=window.supabase.createClient(config.supabaseUrl,config.supabasePublishableKey,{
-    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-  });
-  const saveGithubProviderToken=async(session)=>{
-    if(!session?.provider_token)return;
-    try{
-      const response=await fetch("/api/github-link?action=store",{
-        method:"POST",credentials:"same-origin",
-        headers:{"content-type":"application/json"},
-        body:JSON.stringify({providerToken:session.provider_token})
-      });
-      const data=await response.json().catch(()=>({}));
-      if(response.ok){
-        state.github=data.github||null;
-        await loadGithubStatus();
-        toast("GitHub linked.");
-      }else if(data.error){
-        console.warn(data.error);
-      }
-    }catch(error){console.warn(error)}
-  };
-  supabaseBrowser.auth.onAuthStateChange(async(event,session)=>{
-    if(session?.provider_token) await saveGithubProviderToken(session);
-  });
-  const current=await supabaseBrowser.auth.getSession();
-  if(current.data?.session?.provider_token) await saveGithubProviderToken(current.data.session);
-  return supabaseBrowser;
-}
-
-async function syncBrowserSupabase(session){
-  if(!session?.access_token)return;
-  try{
-    const client=await ensureSupabaseBrowser();
-    await client.auth.setSession({
-      access_token:session.access_token,
-      refresh_token:session.refresh_token||""
-    });
-  }catch(error){console.warn(error)}
-}
-
-async function linkGithub(){
-  if(!state.user){
-    openOverlay("authGate");
-    setAuthMode("signup");
-    return;
+$("source").addEventListener("input",()=>{
+  if(state.activeFile){
+    state.activeFile.content=$("source").innerText||"";
+    state.activeFile.size=state.activeFile.content.length;
+    saveWorkspace();
+    $("gutter").textContent=state.activeFile.content.split("\n").map((_,i)=>i+1).join("\n");
   }
-  try{
-    const client=await ensureSupabaseBrowser();
-    const {error}=await client.auth.linkIdentity({
-      provider:"github",
-      options:{
-        scopes:"repo workflow",
-        redirectTo:location.origin+location.pathname
-      }
-    });
-    if(error)throw error;
-  }catch(error){
-    toast(error.message||"GitHub linking is unavailable.");
-  }
-}
+});
 
-async function loadModels(){
+window.addEventListener("load",async()=>{
+  restoreWorkspace();
   try{
-    const res=await fetch("/api/models",{credentials:"same-origin"});
+    const res=await fetch("/api/models");
     const data=await res.json();
     const models=data.models||[];
-    const select=$("modelSelect");
-    if(!select||!models.length)return;
-    const current=select.value||"auto:coding";
-    select.innerHTML=models.map(model=>'<option value="'+escapeHtml(model.id)+'">'+escapeHtml(model.name||model.id)+'</option>').join("");
-    select.value=models.some(model=>model.id===current)?current:"auto:coding";
+    if(models.length){
+      $("modelSelect").innerHTML=models.map(m=>'<option value="'+escapeHtml(m.id)+'">'+escapeHtml(m.name||m.id)+'</option>').join("");
+      $("modelSelect").value="auto:coding";
+    }
   }catch{}
-}
-
-window.addEventListener("load",()=>{
-  loadModels();
-  ensureSupabaseBrowser().catch(()=>{});
 });
 </script>
 </body>
