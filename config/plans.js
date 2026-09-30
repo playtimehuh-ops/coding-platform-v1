@@ -7,7 +7,7 @@ export const PLANS = {
     runs: 20,
     contextFiles: 12,
     privateRepos: 1,
-    models: ["auto"]
+    models: ["auto:coding", "auto", "auto:fast"]
   },
   builder: {
     id: "builder",
@@ -17,7 +17,7 @@ export const PLANS = {
     runs: 500,
     contextFiles: 40,
     privateRepos: 10,
-    models: ["auto", "coding", "fast"]
+    models: ["auto:coding", "auto", "auto:smart", "auto:fast"]
   },
   team: {
     id: "team",
@@ -27,7 +27,7 @@ export const PLANS = {
     runs: 2000,
     contextFiles: 80,
     privateRepos: 50,
-    models: ["auto", "coding", "fast"]
+    models: ["auto:coding", "auto", "auto:smart", "auto:fast"]
   }
 };
 
