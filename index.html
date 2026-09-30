@@ -58,7 +58,6 @@ button:disabled{cursor:not-allowed;opacity:.48}
     <div class="status" id="status"><i class="status-dot"></i><span>Local</span></div>
     <button class="top-btn" id="accountBtn">Account token</button>
     <button class="top-btn" id="plansBtn">Plans</button>
-    <button class="top-btn" id="openFolderBtn">Open folder</button>
     <button class="top-btn" id="newFileBtn">New file</button>
   </div>
 </header>
@@ -69,7 +68,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
       <label>Workspace</label>
       <div class="repo-meta" id="repoMeta">No project loaded.</div>
       <div style="padding:10px"><button class="small-btn primary" id="openFolderSideBtn" style="width:100%">Open browser folder</button></div>
-      <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
+      
     </div>
     <div class="tree" id="tree"><div class="empty">Open or create a file.<br>Create an account token to begin.</div></div>
   </aside>
@@ -152,7 +151,7 @@ const state={
   files:[],
   activeFile:null,
   model:"auto:coding",
-  projectName:"Local project",
+  projectName:"Project",
   token:localStorage.getItem("codebase-account-token")||"",
   plan:"free",
   billingStatus:"inactive"
@@ -319,72 +318,30 @@ function restoreWorkspace(){
     if(!raw)return;
     const data=JSON.parse(raw);
     if(!Array.isArray(data.files)||!data.files.length)return;
-    state.projectName=String(data.projectName||"Local project");
+    state.projectName=String(data.projectName||"Project");
     state.files=data.files.filter(f=>f&&typeof f.path==="string"&&typeof f.content==="string");
     state.activeFile=state.files[0]||null;
-    $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · browser only";
+    $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · saved";
     renderTree();
     renderCode();
     log("Restored workspace.","ok");
   }catch{}
 }
 
-async function openFolder(){
-  if(window.showDirectoryPicker){
-    try{
-      const handle=await window.showDirectoryPicker();
-      const files=[];
-      async function walk(dir,prefix){
-        for await(const entry of dir.values()){
-          const path=prefix?prefix+"/"+entry.name:entry.name;
-          if(entry.kind==="directory"){
-            if(["node_modules",".git","dist","build","coverage",".next"].includes(entry.name))continue;
-            await walk(entry,path);
-          }else if(entry.kind==="file"){
-            if(!/\.(js|jsx|ts|tsx|json|html|css|scss|md|py|go|rs|java|php|rb|vue|svelte|yml|yaml|sql|sh|txt)$/i.test(entry.name))continue;
-            try{
-              const file=await entry.getFile();
-              const text=await file.text();
-              files.push({path,sha:"",size:text.length,content:text.slice(0,120000)});
-            }catch{}
-          }
-        }
-      }
-      await walk(handle,"");
-      state.projectName=handle.name||"Local project";
-      state.files=files.slice(0,80);
-      state.activeFile=state.files[0]||null;
-      $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · browser only";
-      renderTree();
-      renderCode();
-      saveWorkspace();
-      log("Loaded "+state.files.length+" source files from "+state.projectName+".","ok");
-      return;
-    }catch(error){
-      if(error?.name==="AbortError")return;
-      toast(error.message||"Could not open the folder.");
-    }
-  }
-  $("folderInput").click();
-}
-
-$("folderInput").addEventListener("change",async e=>{
-  const files=[];
-  for(const file of Array.from(e.target.files||[]).slice(0,80)){
-    if(!/\.(js|jsx|ts|tsx|json|html|css|scss|md|py|go|rs|java|php|rb|vue|svelte|yml|yaml|sql|sh|txt)$/i.test(file.name))continue;
-    const text=await file.text().catch(()=> "");
-    files.push({path:file.webkitRelativePath||file.name,sha:"",size:text.length,content:text.slice(0,120000)});
-  }
-  if(!files.length){toast("No supported source files found.");return}
-  state.projectName=(e.target.files?.[0]?.webkitRelativePath||"Local project").split("/")[0]||"Local project";
-  state.files=files;
-  state.activeFile=state.files[0]||null;
-  $("repoMeta").textContent=state.projectName+" · "+state.files.length+" files · browser only";
+function ensureStarterFile(){
+  if(state.files.length)return;
+  state.files=[{
+    path:"main.js",
+    sha:"",
+    size:0,
+    content:"// Start coding here.\n"
+  }];
+  state.activeFile=state.files[0];
+  $("repoMeta").textContent="Ready · main.js";
   renderTree();
   renderCode();
   saveWorkspace();
-  log("Loaded "+state.files.length+" source files.","ok");
-});
+}
 
 function currentContext(){
   saveActiveFile();
@@ -713,9 +670,8 @@ $("copyTokenBtn").onclick=async()=>{
   catch{$("tokenNote").textContent="Clipboard unavailable."}
 };
 
-$("openFolderBtn").onclick=openFolder;
-$("openFolderSideBtn").onclick=openFolder;
-$("newFileBtn").onclick=newFile;
+$('newFileBtn').onclick=newFile;
+$('newFileSideBtn').onclick=newFile;
 $("saveFileBtn").onclick=()=>{saveActiveFile();toast("File saved browserly.")};
 $("downloadFileBtn").onclick=()=>{
   if(!state.activeFile){toast("Select a file first.");return}
@@ -745,15 +701,7 @@ $("source").addEventListener("input",()=>{
 window.addEventListener("load",async()=>{
   restoreWorkspace();
   updateAccountStatus();
-  try{
-    const res=await fetch("/api/models");
-    const data=await res.json();
-    const models=data.models||[];
-    if(models.length){
-      $("modelSelect").innerHTML=models.map(m=>'<option value="'+escapeHtml(m.id)+'">'+escapeHtml(m.name||m.id)+'</option>').join("");
-      $("modelSelect").value="auto:coding";
-    }
-  }catch{}
+
 });
 </script>
 </body>
