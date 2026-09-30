@@ -1,45 +1,52 @@
 # Codebase — coding-platform-v1
 
-A local-first AI coding workspace.
+A local-first AI coding workspace with global token accounts and optional paid plans.
 
 ## How it works
 
+- Generate an account token. The token is the account.
+- Use the same token on any browser or device.
 - Open a project folder directly in the browser.
 - Browse and edit your local source files.
 - Ask the Code Agent for changes, explanations, refactors, tests, and fixes.
 - Review proposed diffs before applying them locally.
 - Export the project as JSON or download individual files.
-- The selected project context is sent to the server only when you press the AI action.
 
-## No account or GitHub
+## Account model
 
-Codebase has no account creation screen and no login flow.
+There is no username, email, or password system.
 
-Codebase does not connect to GitHub, does not import GitHub repositories, and does not create branches or Pull Requests.
+The account credential is a bearer token in the form `cb_…`. Keep it private. Possession of the token grants access to that account.
 
-The workspace is local to the browser and is also saved in localStorage for convenience.
+## GitHub
 
-## AI
+Codebase does not connect to GitHub. It does not import GitHub repositories, create branches, or create Pull Requests.
 
-The AI layer is server-side through `/api/chat` and `/api/review`, using the public keyless llmfaucet gateway.
+## Payment plans
 
-There is no AI API key or AI endpoint setting in the project.
+The built-in plans are:
+
+| Plan | Price | AI runs/month |
+| --- | ---: | ---: |
+| Free | $0 | 20 |
+| Builder | $12/month | 500 |
+| Team | $29/month | 2,000 |
+
+Paid checkout uses Stripe Billing. The Stripe customer is associated with the global Codebase account ID derived from the account token, so no Codebase email/password account is needed.
+
+Stripe Checkout is created server-side. The Stripe secret key is never placed in `index.html` or sent to the browser.
+
+Stripe's Checkout API supports subscription mode and `client_reference_id`/metadata for associating a Checkout Session with an internal account identifier. citeturn752989view0
+
+Codebase can look up the Stripe customer by its account metadata to restore the paid plan across browsers and devices. Stripe documents customer search using metadata queries; search may have propagation delay in some circumstances. citeturn719012view0
 
 ## Deployment
 
 Deploy the repository normally to Vercel.
 
-No application secrets are required for local mode.
+For paid plans, add this server-side environment variable:
 
-## Local controls
+`STRIPE_SECRET_KEY`
 
-Use Chromium-based browsers for the best folder access support. Codebase uses the browser File System Access API when available and falls back to a directory file picker.
+The AI layer itself uses the public keyless llmfaucet gateway and does not require an AI provider key.
 
-
-## Token accounts
-
-There is no username, email, or password system.
-
-Use **Generate new token** to create an account credential. The token itself is the account identity and is sent as a standard `Authorization: Bearer cb_…` credential to the AI endpoints.
-
-Because the account identity is derived from the token, the same token works across browsers and devices. Keep the token private: possession of the token is possession of the account.
