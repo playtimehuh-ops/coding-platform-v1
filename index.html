@@ -87,7 +87,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
   <aside class="agent">
     <div class="ai-head">
       <div class="ai-title"><div class="ai-mark">AI</div><span>Code Agent</span></div>
-      <div style="display:flex;gap:5px;align-items:center"><button class="small-btn" id="reviewBtn">Review</button><select class="model-select" id="modelSelect"><option>Smart routing · Auto</option><option>OpenRouter · Coding</option></select></div>
+      <div style="display:flex;gap:5px;align-items:center"><button class="small-btn" id="reviewBtn">Review</button><select class="model-select" id="modelSelect" aria-label="AI model"><option value="auto:coding">Free · Coding</option><option value="auto">Free · Auto</option><option value="auto:smart">Free · Smart</option><option value="auto:fast">Free · Fast</option></select></div>
     </div>
     <div class="chat" id="chat">
       <div class="empty">A focused coding agent.<br>Ask for a feature, bug fix, refactor, test, or explanation.</div>
@@ -452,7 +452,7 @@ async function send(){
     const res=await fetch("/api/chat",{
       method:"POST",credentials:"same-origin",
       headers:{"content-type":"application/json"},
-      body:JSON.stringify({prompt,repo:state.repo})
+      body:JSON.stringify({prompt,repo:state.repo,model:$("modelSelect")?.value||"auto:coding"})
     });
     const data=await res.json();
     thinking.remove();
@@ -511,7 +511,7 @@ async function runReview(){
     const res=await fetch("/api/review",{
       method:"POST",credentials:"same-origin",
       headers:{"content-type":"application/json"},
-      body:JSON.stringify({repo:state.repo})
+      body:JSON.stringify({repo:state.repo,model:$("modelSelect")?.value||"auto:coding"})
     });
     const data=await res.json();
     if(!res.ok)throw new Error(data.error||"Code review failed.");
@@ -677,24 +677,21 @@ async function linkGithub(){
   }
 }
 
-async function loadOpenRouterModels(){
+async function loadModels(){
   try{
-    const res=await fetch("/api/models");
+    const res=await fetch("/api/models",{credentials:"same-origin"});
     const data=await res.json();
     const models=data.models||[];
     const select=$("modelSelect");
     if(!select||!models.length)return;
-    select.innerHTML='<option value="">Auto routing</option>'+
-      models.slice(0,25).map(model=>'<option value="'+escapeHtml(model.id)+'">'+escapeHtml(model.name||model.id)+'</option>').join("");
-    select.onchange=()=>{
-      const value=select.value;
-      if(value)toast("Model selected: "+value);
-    };
+    const current=select.value||"auto:coding";
+    select.innerHTML=models.map(model=>'<option value="'+escapeHtml(model.id)+'">'+escapeHtml(model.name||model.id)+'</option>').join("");
+    select.value=models.some(model=>model.id===current)?current:"auto:coding";
   }catch{}
 }
 
 window.addEventListener("load",()=>{
-  loadOpenRouterModels();
+  loadModels();
   ensureSupabaseBrowser().catch(()=>{});
 });
 </script>
