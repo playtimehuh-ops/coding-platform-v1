@@ -65,12 +65,11 @@ button:disabled{cursor:not-allowed;opacity:.48}
   <aside class="sidebar">
     <div class="section-head"><span>Project</span><span>FILES</span></div>
     <div class="repo-select">
-      <label>Workspace</label>
-      <div class="repo-meta" id="repoMeta">No project loaded.</div>
-      <div style="padding:10px"><button class="small-btn primary" id="openFolderSideBtn" style="width:100%">Open browser folder</button></div>
-      
+      <label>Project</label>
+      <div class="repo-meta" id="repoMeta">Ready.</div>
+      <div style="padding:10px"><button class="small-btn primary" id="newFileSideBtn" style="width:100%">New file</button></div>
     </div>
-    <div class="tree" id="tree"><div class="empty">Open or create a file.<br>Create an account token to begin.</div></div>
+    <div class="tree" id="tree"><div class="empty">Create or select a file.<br>Generate an account token to begin.</div></div>
   </aside>
 
   <section class="editor">
@@ -151,7 +150,7 @@ const state={
   files:[],
   activeFile:null,
   model:"auto:coding",
-  projectName:"Project",
+  projectName:"Codebase",
   token:localStorage.getItem("codebase-account-token")||"",
   plan:"free",
   billingStatus:"inactive"
@@ -268,7 +267,7 @@ function normalizeFile(file,path){
 
 function renderTree(){
   if(!state.files.length){
-    $("tree").innerHTML='<div class="empty">Open or create a file.<br>Create an account token to begin.</div>';
+    $("tree").innerHTML='<div class="empty">Create or select a file.<br>Generate an account token to begin.</div>';
     return;
   }
   $("tree").innerHTML=state.files.map(file=>{
@@ -634,33 +633,27 @@ $("accountBtn").onclick=openTokenModal;
 $("closeToken").onclick=closeTokenModal;
 $("tokenOverlay").onclick=e=>{if(e.target.id==="tokenOverlay")closeTokenModal()};
 
-$("generateTokenBtn").onclick=async()=>{
-  $("generateTokenBtn").disabled=true;
+$("generateTokenBtn").onclick=()=>{
   try{
-    const res=await fetch("/api/token",{method:"POST",headers:{"content-type":"application/json"}});
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error||"Could not generate token.");
-    $("tokenInput").value=data.token;
-    $("tokenNote").textContent="New token generated. Save it somewhere safe before using it on another device.";
-  }catch(error){
-    $("tokenNote").textContent=error.message;
-  }finally{$("generateTokenBtn").disabled=false}
+    const bytes=new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    let raw="";
+    for(const byte of bytes)raw+=byte.toString(16).padStart(2,"0");
+    $("tokenInput").value="cb_"+raw;
+    $("tokenNote").textContent="New account token generated. Keep it private.";
+  }catch{
+    $("tokenNote").textContent="Secure token generation is unavailable in this browser.";
+  }
 };
 
-$("saveTokenBtn").onclick=async()=>{
+$("saveTokenBtn").onclick=()=>{
   const token=$("tokenInput").value.trim();
-  if(!token){$("tokenNote").textContent="Enter a token first.";return}
-  $("saveTokenBtn").disabled=true;
-  try{
-    const res=await fetch("/api/account",{headers:{Authorization:"Bearer "+token}});
-    const data=await res.json();
-    if(!res.ok||!data.authenticated)throw new Error(data.error||"Invalid token.");
-    setToken(token);
-    $("tokenNote").textContent="Token accepted. This is now the active account.";
-    updateAccountStatus();
-  }catch(error){
-    $("tokenNote").textContent=error.message;
-  }finally{$("saveTokenBtn").disabled=false}
+  if(!/^cb_[a-f0-9]{64}$/i.test(token)){
+    $("tokenNote").textContent="Enter a valid cb_ token.";
+    return;
+  }
+  setToken(token);
+  $("tokenNote").textContent="Token saved. This is now the active account.";
 };
 
 $("copyTokenBtn").onclick=async()=>{
@@ -671,7 +664,7 @@ $("copyTokenBtn").onclick=async()=>{
 };
 
 $('newFileBtn').onclick=newFile;
-$('newFileSideBtn').onclick=newFile;
+$("newFileSideBtn").onclick=newFile;
 $("saveFileBtn").onclick=()=>{saveActiveFile();toast("File saved browserly.")};
 $("downloadFileBtn").onclick=()=>{
   if(!state.activeFile){toast("Select a file first.");return}
