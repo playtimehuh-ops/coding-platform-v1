@@ -440,6 +440,7 @@ async function send(){
 }
 
 async function runReview(){
+  if(!state.token){openTokenModal();return}
   saveActiveFile();
   const files=currentContext();
   if(!files.length){toast("Open a local project folder first.");return}
