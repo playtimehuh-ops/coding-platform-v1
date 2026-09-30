@@ -18,6 +18,11 @@ const SCHEMA = {
   required: ["summary", "findings"]
 };
 
+function bodyToken(request) {
+  const header = request.headers.get("authorization") || "";
+  return /^Bearer\s+cb_[A-Za-z0-9_-]{40,80}$/i.test(header) ? header : "";
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -53,6 +58,8 @@ export default async function handler(request) {
   if (request.method !== "POST") return json({ error: "POST required." }, 405);
 
   try {
+    if (!bodyToken(request)) return json({ error: "Account token required.", code: "TOKEN_REQUIRED" }, 401);
+
     const body = await request.json();
     const model = String(body.model || "auto:coding").trim();
     const context = normalizeContext(body.context);
