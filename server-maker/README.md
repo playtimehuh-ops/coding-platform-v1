@@ -16,6 +16,7 @@ Requirements: Linux, Docker Engine, Node.js 20+, and a host that remains online.
    cd agent
    npm install
    export KERNEL_AGENT_TOKEN="$(openssl rand -hex 32)"
+   export KERNEL_DASHBOARD_ORIGIN="https://your-dashboard.example.com"
    npm start
    ```
 3. Put the agent behind HTTPS using a reverse proxy such as Caddy or Nginx. Forward WebSocket upgrades for `/terminal` as well as HTTP requests. Do not expose an unauthenticated Docker socket.
@@ -38,7 +39,7 @@ For local testing only, `http://localhost:8080` can be used from a dashboard run
 - Do not give this agent to untrusted users as-is. Before public multi-user launch, add real user authentication, per-user authorization, quotas, audit logs, abuse controls, and a hardened network design.
 - Inbound ports are not published by default. Containers have outbound networking; manage inbound exposure separately.
 - The dashboard keeps the token in the current tab's session storage and does not send it to Vercel.
-- The dashboard currently connects directly to your host agent. CORS should be configured at your reverse proxy to allow only your dashboard origin.
+- The dashboard currently connects directly to your host agent. Set `KERNEL_DASHBOARD_ORIGIN` to the exact dashboard origin to allow cross-origin browser requests. Do not use `*` for a public deployment.
 
 ## Resource profiles
 
