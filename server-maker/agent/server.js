@@ -9,6 +9,18 @@ import pty from 'node-pty';
 const execFileAsync = promisify(execFile);
 const app = express();
 app.disable('x-powered-by');
+const DASHBOARD_ORIGIN = process.env.KERNEL_DASHBOARD_ORIGIN || '';
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && DASHBOARD_ORIGIN && origin === DASHBOARD_ORIGIN) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(origin && DASHBOARD_ORIGIN && origin !== DASHBOARD_ORIGIN ? 403 : 204);
+  next();
+});
 app.use(express.json({ limit: '16kb' }));
 const PORT = Number(process.env.PORT || 8080);
 const TOKEN = process.env.KERNEL_AGENT_TOKEN;
@@ -66,7 +78,6 @@ app.post('/api/servers', async (req, res) => {
       '--restart', 'unless-stopped', '--init',
       '--memory', memory, '--cpus', cpus, '--pids-limit', '256',
       '--security-opt', 'no-new-privileges',
-      '--cap-drop', 'ALL',
       '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m',
       'debian:bookworm-slim', 'sleep', 'infinity'
     ]);
